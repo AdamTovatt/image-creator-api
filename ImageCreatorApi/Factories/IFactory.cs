@@ -2,6 +2,6 @@
 {
     public interface IFactory<T>
     {
-        public T GetInstance();
+        public abstract static T GetInstance();
     }
 }

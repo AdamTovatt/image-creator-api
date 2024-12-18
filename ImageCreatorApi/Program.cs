@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http.Features;
+using Sakur.WebApiUtilities.Helpers;
 
 namespace ImageCreatorApi
 {
@@ -5,18 +7,18 @@ namespace ImageCreatorApi
     {
         public static void Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
+            WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            AssertEnvironmentVariables();
+
+            builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 1024 * 1024 * 1024);
 
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            var app = builder.Build();
+            WebApplication app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -27,10 +29,16 @@ namespace ImageCreatorApi
 
             app.UseAuthorization();
 
-
             app.MapControllers();
 
             app.Run();
+        }
+
+        private static void AssertEnvironmentVariables()
+        {
+            EnvironmentHelper.GetEnvironmentVariable("CLOUDINARY_CLOUD", 3);
+            EnvironmentHelper.GetEnvironmentVariable("CLOUDINARY_KEY", 6);
+            EnvironmentHelper.GetEnvironmentVariable("CLOUDINARY_SECRET", 6);
         }
     }
 }

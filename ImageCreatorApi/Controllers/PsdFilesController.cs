@@ -1,4 +1,10 @@
+using ImageCreatorApi.Factories;
+using ImageCreatorApi.Managers;
+using ImageCreatorApi.Models.FilePaths;
+using ImageCreatorApi.Storage;
 using Microsoft.AspNetCore.Mvc;
+using Sakur.WebApiUtilities.Models;
+using System.Net;
 
 namespace ImageCreatorApi.Controllers
 {
@@ -6,11 +12,6 @@ namespace ImageCreatorApi.Controllers
     [Route("[controller]")]
     public class PsdFilesController : ControllerBase
     {
-        private static readonly string[] Summaries = new[]
-        {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
-
         private readonly ILogger<PsdFilesController> _logger;
 
         public PsdFilesController(ILogger<PsdFilesController> logger)
@@ -18,16 +19,35 @@ namespace ImageCreatorApi.Controllers
             _logger = logger;
         }
 
-        [HttpGet(Name = "GetWeatherForecast")]
-        public IEnumerable<WeatherForecast> Get()
+        [HttpPost("upload")]
+        public async Task<IActionResult> Upload(IFormFile psdFile)
         {
-            return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+            IFileSystem fileSystem = FileSystemFactory.GetInstance();
+            PsdFilePath filePath = new PsdFilePath(psdFile.FileName);
+
+            bool directoryExists = await fileSystem.FolderExistsAsync(filePath.GetDirectoryPath());
+            if (!directoryExists)
             {
-                Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray();
+                for (int i = 0; i < filePath.SubdirectoryDepth; i++)
+                {
+                    string subDirectoryPath = filePath.GetDirectoryPath(i);
+                    bool subDirectoryExists = await fileSystem.FolderExistsAsync(subDirectoryPath);
+
+                    if (!subDirectoryExists)
+                        await fileSystem.CreateFolderAsync(subDirectoryPath);
+                }
+            }
+
+            string filePathString = filePath.ToString();
+            if (await fileSystem.FileExistsAsync(filePathString))
+                return new ApiResponse("File already exists! If you want to replace it, use the update method instead!", HttpStatusCode.BadRequest);
+
+            using (Stream fileStream = psdFile.OpenReadStream())
+            {
+                await fileSystem.WriteFileAsync(filePathString, fileStream);
+            }
+
+            return new ApiResponse("ok");
         }
     }
 }

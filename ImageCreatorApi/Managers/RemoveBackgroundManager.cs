@@ -1,12 +1,14 @@
-﻿namespace ImageCreatorApi.Managers
+﻿using ImageCreatorApi.Storage;
+
+namespace ImageCreatorApi.Managers
 {
     public class RemoveBackgroundManager : IDisposable
     {
-        public IFileManager fileManager;
+        public IFileSystem fileManager;
         private HttpClient client;
         private string apiKey;
 
-        public RemoveBackgroundManager(IFileManager fileManager, string apiKey)
+        public RemoveBackgroundManager(IFileSystem fileManager, string apiKey)
         {
             this.fileManager = fileManager;
             this.apiKey = apiKey;
