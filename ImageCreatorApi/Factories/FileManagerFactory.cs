@@ -10,7 +10,7 @@ namespace ImageCreatorApi.Factories
         {
             if (instance == null)
             {
-                instance = new CloudinaryFileManager();
+                instance = new CloudinaryFileManager(;
             }
 
             return instance;
