@@ -1,9 +1,9 @@
 ﻿using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
-using ImageCreatorApi.Models;
+using ImageCreatorApi.Models.FilePaths;
 using System.Text;
 
-namespace ImageCreatorApi.Storage
+namespace ImageCreatorApi.FileSystems
 {
     public class CloudinaryFileSystem : IFileSystem
     {
@@ -50,10 +50,30 @@ namespace ImageCreatorApi.Storage
 
         public async Task<IReadOnlyList<string>> ListFilesAsync(string folderPath)
         {
-            ListResourcesResult result = await cloudinary.ListResourceByAssetFolderAsync(folderPath, false, false, false);
+            List<string> allFiles = new List<string>();
+            string? nextCursor = null;
 
-            return result.Resources.Select(x => x.AssetId).ToList().AsReadOnly();
+            do
+            {
+                ListResourcesByAssetFolderParams parameters = new ListResourcesByAssetFolderParams
+                {
+                    AssetFolder = folderPath,
+                    MaxResults = 500, // Max allowed value for cloudinary
+                    NextCursor = nextCursor
+                };
+
+                ListResourcesResult result = await cloudinary.ListResourcesAsync(parameters);
+
+                if (result.Resources != null)
+                    allFiles.AddRange(result.Resources.Select(x => x.PublicId));
+
+                nextCursor = result.NextCursor;
+
+            } while (!string.IsNullOrEmpty(nextCursor));
+
+            return allFiles.AsReadOnly();
         }
+
 
         public async Task<IReadOnlyList<string>> ListFoldersAsync(string folderPath)
         {
@@ -90,26 +110,57 @@ namespace ImageCreatorApi.Storage
         {
             GetResourceParams getResourceParams = new GetResourceParams(path);
             GetResourceResult result = await cloudinary.GetResourceAsync(getResourceParams);
+
+            if (result.StatusCode == System.Net.HttpStatusCode.OK) return true; // File exists as single file
+
+            getResourceParams = new GetResourceParams(FilePath.AddChunkNumber(path, 1)); // Let's check if it exists as a chunked file (by checking if the first chunk exists)
+            getResourceParams.ResourceType = ResourceType.Raw;
+            result = await cloudinary.GetResourceAsync(getResourceParams);
+
             return result.StatusCode == System.Net.HttpStatusCode.OK;
         }
 
-        public async Task<byte[]> ReadFileAsync(string filePath)
+        public async Task<Stream> ReadFileAsync(string filePath)
         {
+            List<string> chunkPaths = new List<string>();
+
             GetResourceParams getResourceParams = new GetResourceParams(filePath);
+            getResourceParams.ResourceType = ResourceType.Raw;
             GetResourceResult result = await cloudinary.GetResourceAsync(getResourceParams);
 
-            if (!string.IsNullOrEmpty(result.Error.Message))
-                throw new FileNotFoundException(result.Error.Message);
+            if (result.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                // Single file exists, return its stream
+                HttpClient client = new HttpClient();
+                return await client.GetStreamAsync(result.SecureUrl);
+            }
 
-            HttpClient client = new HttpClient();
-            byte[] data = await client.GetByteArrayAsync(result.SecureUrl);
+            // If the single file doesn't exist, check for chunks
+            int chunkIndex = 1;
+            while (true)
+            {
+                string chunkFilePath = FilePath.AddChunkNumber(filePath, chunkIndex);
+                getResourceParams = new GetResourceParams(chunkFilePath);
+                getResourceParams.ResourceType = ResourceType.Raw;
 
-            return data;
+                result = await cloudinary.GetResourceAsync(getResourceParams);
+
+                if (result.StatusCode != System.Net.HttpStatusCode.OK)
+                    break; // No more chunks found, exit the loop
+
+                chunkPaths.Add(result.SecureUrl);
+                chunkIndex++;
+            }
+
+            if (chunkPaths.Count == 0)
+                throw new FileNotFoundException("File or file chunks not found.");
+
+            return new UrlChunkStream(chunkPaths);
         }
 
         public async Task WriteFileAsync(string filePath, Stream dataStream)
         {
-            int chunkIndex = 1;
+            int chunkNumber = 1;
             string? folderPath = Path.GetDirectoryName(filePath)?.Replace('\\', '/');
             List<string> uploadedChunks = new List<string>();
 
@@ -119,7 +170,7 @@ namespace ImageCreatorApi.Storage
                 {
                     using (SubStream chunkStream = new SubStream(dataStream, maxFileSize))
                     {
-                        string chunkFilePath = $"{filePath}_chunk_{chunkIndex:D3}";
+                        string chunkFilePath = FilePath.AddChunkNumber(filePath, chunkNumber);
 
                         RawUploadParams uploadParams = new RawUploadParams
                         {
@@ -135,16 +186,15 @@ namespace ImageCreatorApi.Storage
 
                         uploadedChunks.Add(chunkFilePath);
 
-                        chunkIndex++;
+                        chunkNumber++;
                     }
                 }
             }
             catch
             {
                 foreach (string chunk in uploadedChunks)
-                {
                     await cloudinary.DeleteResourcesAsync(new DelResParams { PublicIds = new List<string> { chunk } });
-                }
+
                 throw;
             }
         }

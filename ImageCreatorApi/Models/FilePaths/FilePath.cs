@@ -90,5 +90,10 @@ namespace ImageCreatorApi.Models.FilePaths
 
             return fileName + extension;
         }
+
+        public static string AddChunkNumber(string filePath, int index)
+        {
+            return $"{filePath}_chunk_{index:D3}";
+        }
     }
 }

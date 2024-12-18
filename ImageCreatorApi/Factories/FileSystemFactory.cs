@@ -1,4 +1,4 @@
-﻿using ImageCreatorApi.Storage;
+﻿using ImageCreatorApi.FileSystems;
 using Sakur.WebApiUtilities.Helpers;
 
 namespace ImageCreatorApi.Factories

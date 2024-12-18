@@ -1,4 +1,4 @@
-﻿namespace ImageCreatorApi.Storage
+﻿namespace ImageCreatorApi.FileSystems
 {
     public interface IFileSystem
     {
@@ -9,7 +9,7 @@
         Task CreateFolderAsync(string folderPath);
         Task DeleteFileAsync(string filePath);
         Task DeleteFolderAsync(string folderPath, bool recursive);
-        Task<byte[]> ReadFileAsync(string filePath);
+        Task<Stream> ReadFileAsync(string filePath);
         Task WriteFileAsync(string filePath, Stream dataStream);
     }
 }

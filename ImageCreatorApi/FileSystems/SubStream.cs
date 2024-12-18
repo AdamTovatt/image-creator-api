@@ -1,4 +1,4 @@
-﻿namespace ImageCreatorApi.Models
+﻿namespace ImageCreatorApi.FileSystems
 {
     public class SubStream : Stream
     {

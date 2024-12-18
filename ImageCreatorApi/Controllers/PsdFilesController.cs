@@ -1,7 +1,7 @@
 using ImageCreatorApi.Factories;
 using ImageCreatorApi.Managers;
 using ImageCreatorApi.Models.FilePaths;
-using ImageCreatorApi.Storage;
+using ImageCreatorApi.FileSystems;
 using Microsoft.AspNetCore.Mvc;
 using Sakur.WebApiUtilities.Models;
 using System.Net;
@@ -48,6 +48,30 @@ namespace ImageCreatorApi.Controllers
             }
 
             return new ApiResponse("ok");
+        }
+
+        [HttpGet("download")]
+        public async Task<IActionResult> Download(string fileName)
+        {
+            IFileSystem fileSystem = FileSystemFactory.GetInstance();
+            string filePath = new PsdFilePath(fileName).ToString();
+
+            bool fileExists = await fileSystem.FileExistsAsync(filePath);
+            if (!fileExists)
+                return new ApiResponse("File not found!", HttpStatusCode.NotFound);
+
+            try
+            {
+                Stream fileStream = await fileSystem.ReadFileAsync(filePath);
+                string contentType = "application/photoshop";
+                string fileDownloadName = Path.GetFileName(filePath);
+
+                return File(fileStream, contentType, fileDownloadName);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse($"Error downloading file: {ex.Message}", HttpStatusCode.InternalServerError);
+            }
         }
     }
 }
