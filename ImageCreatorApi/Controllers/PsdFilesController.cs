@@ -4,16 +4,16 @@ namespace ImageCreatorApi.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class WeatherForecastController : ControllerBase
+    public class PsdFilesController : ControllerBase
     {
         private static readonly string[] Summaries = new[]
         {
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
         };
 
-        private readonly ILogger<WeatherForecastController> _logger;
+        private readonly ILogger<PsdFilesController> _logger;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+        public PsdFilesController(ILogger<PsdFilesController> logger)
         {
             _logger = logger;
         }

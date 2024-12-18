@@ -1,3 +1,4 @@
 .vs
 ImageCreatorApi/bin
 ImageCreatorApi/obj
+ImageCreatorApi/Properties/launchSettings.json

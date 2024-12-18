@@ -24,7 +24,7 @@
             {
                 formData.Headers.Add("X-Api-Key", apiKey);
                 formData.Add(new ByteArrayContent(image), "image_file", "file.jpg");
-                formData.Add(new StringContent("auto"), "size");
+                formData.Add(new StringContent("preview"), "size");
                 HttpResponseMessage response = await client.PostAsync("https://api.remove.bg/v1.0/removebg", formData);
 
                 if (response.IsSuccessStatusCode)
