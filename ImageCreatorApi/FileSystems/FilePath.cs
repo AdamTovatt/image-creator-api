@@ -1,10 +1,15 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
 
-namespace ImageCreatorApi.Models.FilePaths
+namespace ImageCreatorApi.FileSystems
 {
     public abstract class FilePath
     {
+        private const string chunkInfoSuffix = "_chunkinfo";
+        private const string chunkNumberMiddlePart = "_chunk_";
+        private const string chunkNumberFormat = "{0}_chunk_{1:D3}";
+        private static readonly int chunkSuffixLength = chunkNumberMiddlePart.Length + 3;
+
         public int SubdirectoryDepth => parts.Count;
         public string FileName { get; protected set; }
         protected List<string> parts;
@@ -93,7 +98,33 @@ namespace ImageCreatorApi.Models.FilePaths
 
         public static string AddChunkNumber(string filePath, int index)
         {
-            return $"{filePath}_chunk_{index:D3}";
+            return string.Format(chunkNumberFormat, filePath, index);
+        }
+
+        public static string AddChunkInfoSuffix(string filePath)
+        {
+            return $"{filePath}{chunkInfoSuffix}";
+        }
+
+        public static bool IsChunkFile(string filePath)
+        {
+            if (filePath.Length < chunkSuffixLength)
+                return false;
+
+            return filePath.Substring(filePath.Length - chunkSuffixLength, chunkNumberMiddlePart.Length) == chunkNumberMiddlePart &&
+                   char.IsDigit(filePath[filePath.Length - 3]) &&
+                   char.IsDigit(filePath[filePath.Length - 2]) &&
+                   char.IsDigit(filePath[filePath.Length - 1]);
+        }
+
+        public static bool IsChunkInfoFile(string filePath)
+        {
+            return filePath.EndsWith(chunkInfoSuffix);
+        }
+
+        public static string RemoveChunkInfoSuffix(string filePath)
+        {
+            return filePath.Replace(chunkInfoSuffix, "");
         }
     }
 }

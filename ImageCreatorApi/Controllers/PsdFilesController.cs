@@ -25,29 +25,36 @@ namespace ImageCreatorApi.Controllers
             IFileSystem fileSystem = FileSystemFactory.GetInstance();
             PsdFilePath filePath = new PsdFilePath(psdFile.FileName);
 
-            bool directoryExists = await fileSystem.FolderExistsAsync(filePath.GetDirectoryPath());
-            if (!directoryExists)
-            {
-                for (int i = 0; i < filePath.SubdirectoryDepth; i++)
-                {
-                    string subDirectoryPath = filePath.GetDirectoryPath(i);
-                    bool subDirectoryExists = await fileSystem.FolderExistsAsync(subDirectoryPath);
-
-                    if (!subDirectoryExists)
-                        await fileSystem.CreateFolderAsync(subDirectoryPath);
-                }
-            }
+            await fileSystem.EnsureDirectoryOfFileExistsAsync(filePath);
 
             string filePathString = filePath.ToString();
             if (await fileSystem.FileExistsAsync(filePathString))
                 return new ApiResponse("File already exists! If you want to replace it, use the update method instead!", HttpStatusCode.BadRequest);
 
             using (Stream fileStream = psdFile.OpenReadStream())
-            {
                 await fileSystem.WriteFileAsync(filePathString, fileStream);
-            }
 
-            return new ApiResponse("ok");
+            return new ApiResponse("File was uploaded.");
+        }
+
+        [HttpPost("update")]
+        public async Task<IActionResult> Update(IFormFile psdFile)
+        {
+            IFileSystem fileSystem = FileSystemFactory.GetInstance();
+            PsdFilePath filePath = new PsdFilePath(psdFile.FileName);
+
+            await fileSystem.EnsureDirectoryOfFileExistsAsync(filePath);
+
+            string filePathString = filePath.ToString();
+            if (!await fileSystem.FileExistsAsync(filePathString))
+                return new ApiResponse("File doesn't exists! If you want to upload a new file, use the upload method instead!", HttpStatusCode.BadRequest);
+
+            await fileSystem.DeleteFileAsync(filePathString);
+
+            using (Stream fileStream = psdFile.OpenReadStream())
+                await fileSystem.WriteFileAsync(filePathString, fileStream);
+
+            return new ApiResponse("File was uploaded.");
         }
 
         [HttpGet("download")]

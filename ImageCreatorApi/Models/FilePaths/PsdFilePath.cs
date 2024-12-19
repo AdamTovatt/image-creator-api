@@ -1,4 +1,6 @@
-﻿namespace ImageCreatorApi.Models.FilePaths
+﻿using ImageCreatorApi.FileSystems;
+
+namespace ImageCreatorApi.Models.FilePaths
 {
     public class PsdFilePath : FilePath
     {
