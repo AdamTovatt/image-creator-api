@@ -6,10 +6,12 @@
         private Stream _currentChunkStream;
         private readonly HttpClient _httpClient;
         private bool _disposed;
+        private long _length;
 
-        public UrlChunkStream(IEnumerable<string> chunkUrls)
+        public UrlChunkStream(ChunkInfo chunkInfo)
         {
-            _chunkUrls = new Queue<string>(chunkUrls);
+            _length = chunkInfo.TotalFileLength;
+            _chunkUrls = new Queue<string>(chunkInfo.Chunks.Select(x => x.SecureUrl));
             _httpClient = new HttpClient();
             _currentChunkStream = Null;
         }
@@ -17,7 +19,7 @@
         public override bool CanRead => true;
         public override bool CanSeek => false;
         public override bool CanWrite => false;
-        public override long Length => throw new NotSupportedException();
+        public override long Length => _length;
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
 
         public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)

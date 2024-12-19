@@ -1,6 +1,6 @@
 ﻿using ImageCreatorApi.FileSystems;
 
-namespace ImageCreatorApi.Models.FilePaths
+namespace ImageCreatorApi.Models.Photoshop
 {
     public class PsdFilePath : FilePath
     {

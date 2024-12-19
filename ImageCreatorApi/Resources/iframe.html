@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photopea iFrame</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        #photopeaFrame {
+            width: 90%;
+            height: 90%;
+            border: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <iframe id="photopeaFrame" src="https://www.photopea.com#%7B%22files%22%3A%5B%22https%3A%2F%2Fwww.photopea.com%2Fapi%2Fimg2%2Fpug.png%22%5D%2C%22environment%22%3A%7B%7D%7D"></iframe>
+
+    <script>
+        // The photopea frame that will be used
+        window.photopeaFrame = document.getElementById('photopeaFrame').contentWindow;
+
+        // Global variables
+        window.fileBytes = null;
+        window.fileBlob = null;
+        window.fileUrl = null;
+
+        // Standard Response class
+        class Response {
+            constructor(success, content) {
+                this.success = success;
+                this.content = content;
+            }
+
+            static success(content) {
+                return new Response(true, content);
+            }
+
+            static error(message) {
+                return new Response(false, message);
+            }
+
+            toJson() {
+                return JSON.stringify(this);
+            }
+        }
+
+        // Function to fetch bytes from a local HTTP server and store them globally
+        function fetchAndStoreBytes(url, callback) {
+            (async () => {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        callback(Response.error(`HTTP error! Status: ${response.status}`).toJson());
+                        return;
+                    }
+
+                    window.fileBytes = await response.arrayBuffer();
+                    callback(Response.success('Bytes successfully fetched and stored in window.fileBytes').toJson());
+                } catch (error) {
+                    callback(Response.error(error.message).toJson());
+                }
+            })();
+        }
+
+        // Function to create and store the Blob and URL from the ArrayBuffer
+        function createBlobAndUrl() {
+            if (!window.fileBytes) {
+                return Response.error('No fileBytes found. Please fetch the bytes first.').toJson();
+            }
+
+            try {
+                // Revoke the existing URL and dereference the old Blob to free up memory
+                if (window.fileUrl) {
+                    URL.revokeObjectURL(window.fileUrl);
+                    window.fileUrl = null;
+                }
+                if (window.fileBlob) {
+                    window.fileBlob = null;
+                }
+
+                // Create a new Blob from the ArrayBuffer
+                window.fileBlob = new Blob([window.fileBytes]);
+
+                // Create a new URL for the Blob
+                window.fileUrl = URL.createObjectURL(window.fileBlob);
+
+                return Response.success(window.fileUrl).toJson();
+            } catch (error) {
+                return Response.error(error.message).toJson();
+            }
+        }
+
+        // Function to clean up the Blob and URL to free up memory
+        function cleanupBlobAndUrl() {
+            try {
+                if (window.fileUrl) {
+                    URL.revokeObjectURL(window.fileUrl);
+                }
+
+                // Clear the global variables
+                window.fileBlob = null;
+                window.fileUrl = null;
+
+                return Response.success('Blob and URL cleaned up successfully').toJson();
+            } catch (error) {
+                return Response.error(error.message).toJson();
+            }
+        }
+
+        // Helper function to convert ArrayBuffer to a Base64 string
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            let bytes = new Uint8Array(buffer);
+            let len = bytes.byteLength;
+            for (let i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+
+        // Global list to store log entries
+        let logList = [];
+        // Initialize a counter for unique indices
+        let logIndex = 0;
+
+        // Adding an event listener for messages from the iframe
+        window.addEventListener("message", function (event) {
+            // Variable to store the processed string
+            let dataToLog = '';
+
+            // Check if the event has a "data" field
+            if (!event.data) {
+                return;
+            }
+
+            // Skip logging if the event source is "react-devtools-content-script"
+            if (event.data.source === "react-devtools-content-script") {
+                return;
+            }
+
+            // Process the data based on its type
+            if (event.data instanceof ArrayBuffer) {
+                // Convert ArrayBuffer to Base64 and store it in the dataToLog variable
+                dataToLog = "0:" + arrayBufferToBase64(event.data);
+            } 
+            else if (typeof event.data === "string") {
+                // Directly store the string in the dataToLog variable
+                dataToLog = "1:" + event.data;
+            } 
+            else {
+                // For other data types, convert them to a string and store it
+                dataToLog = "2:" + JSON.stringify(event.data);
+            }
+
+            // Increment the index for each new message
+            logIndex++;
+            // Append the log entry to the global logList array
+            logList.push(logIndex + ": " + dataToLog);
+        });
+
+        // Optional: Expose the logList array to the global scope so it can be accessed anywhere
+        window.getLogList = function() {
+            return logList;
+        };
+
+        // Function to get the most recent log index
+        window.getMostRecentLogIndex = function () {
+            return logIndex;
+        };
+
+        // Function to get log entries after a specific index
+        window.getLogsAfterIndex = function (startIndex) {
+            return logList.filter((_, i) => i >= startIndex);
+        };
+
+        // Function to clear the log and reset the index
+        window.clearLog = function () {
+            logList = [];
+            logIndex = 0;
+        };
+    </script>
+</body>
+</html>

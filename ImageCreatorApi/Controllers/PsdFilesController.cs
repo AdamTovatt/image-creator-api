@@ -1,10 +1,11 @@
 using ImageCreatorApi.Factories;
 using ImageCreatorApi.Managers;
-using ImageCreatorApi.Models.FilePaths;
 using ImageCreatorApi.FileSystems;
 using Microsoft.AspNetCore.Mvc;
 using Sakur.WebApiUtilities.Models;
 using System.Net;
+using ImageCreatorApi.Models.Photoshop;
+using ImageCreatorApi.Helpers;
 
 namespace ImageCreatorApi.Controllers
 {
@@ -54,7 +55,7 @@ namespace ImageCreatorApi.Controllers
             using (Stream fileStream = psdFile.OpenReadStream())
                 await fileSystem.WriteFileAsync(filePathString, fileStream);
 
-            return new ApiResponse("File was uploaded.");
+            return new ApiResponse("File was updated.");
         }
 
         [HttpGet("download")]
@@ -79,6 +80,26 @@ namespace ImageCreatorApi.Controllers
             {
                 return new ApiResponse($"Error downloading file: {ex.Message}", HttpStatusCode.InternalServerError);
             }
+        }
+
+        [HttpPost("create-metadata")]
+        public async Task<IActionResult> CreateMetadata(string fileName)
+        {
+            IFileSystem fileSystem = FileSystemFactory.GetInstance();
+            await PhotoshopMetadataHelper.CreateMetadataAsync(new PsdFilePath(fileName).ToString());
+
+            return new ApiResponse("Ok");
+        }
+
+        [HttpGet("list")]
+        public async Task<IActionResult> List()
+        {
+            IFileSystem fileSystem = FileSystemFactory.GetInstance();
+            string psdDirectoryPath = new PsdFilePath("file.psd").GetDirectoryPath();
+
+            IReadOnlyList<string> fileNames = await fileSystem.ListFilesAsync(psdDirectoryPath);
+
+            return new ApiResponse(fileNames);
         }
     }
 }

@@ -178,9 +178,8 @@ namespace ImageCreatorApi.FileSystems
 
             using HttpClient client = new HttpClient();
             string chunkInfoJson = await client.GetStringAsync(result.SecureUrl);
-            ChunkInfo chunkInfo = ChunkInfo.FromJson(chunkInfoJson);
 
-            return new UrlChunkStream(chunkInfo.Chunks.Select(x => x.SecureUrl));
+            return new UrlChunkStream(ChunkInfo.FromJson(chunkInfoJson));
         }
 
         public async Task WriteFileAsync(string filePath, Stream dataStream)

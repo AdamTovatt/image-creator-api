@@ -38,7 +38,7 @@ namespace ImageCreatorApi.FileSystems
 
         public static ChunkInfo FromJson(string json)
         {
-            return JsonSerializer.Deserialize<ChunkInfo>(json) ?? throw new InvalidOperationException("Failed to deserialize ChunkInfo.");
+            return JsonSerializer.Deserialize<ChunkInfo>(json) ?? throw new InvalidOperationException($"Failed to deserialize {nameof(ChunkInfo)} from json: {json}");
         }
     }
 }
