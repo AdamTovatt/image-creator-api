@@ -6,6 +6,7 @@ using Sakur.WebApiUtilities.Models;
 using System.Net;
 using ImageCreatorApi.Models.Photoshop;
 using ImageCreatorApi.Helpers;
+using WebApiUtilities.TaskScheduling;
 
 namespace ImageCreatorApi.Controllers
 {
@@ -34,6 +35,8 @@ namespace ImageCreatorApi.Controllers
 
             using (Stream fileStream = psdFile.OpenReadStream())
                 await fileSystem.WriteFileAsync(filePathString, fileStream);
+
+            BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(filePath.FileName));
 
             return new ApiResponse("File was uploaded.");
         }
@@ -85,9 +88,8 @@ namespace ImageCreatorApi.Controllers
         [HttpPost("create-metadata")]
         public async Task<IActionResult> CreateMetadata(string fileName)
         {
-            IFileSystem fileSystem = FileSystemFactory.GetInstance();
-            await PhotoshopMetadataHelper.CreateMetadataAsync(new PsdFilePath(fileName).ToString());
-
+            await Task.CompletedTask;
+            BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(fileName));
             return new ApiResponse("Ok");
         }
 
@@ -99,7 +101,36 @@ namespace ImageCreatorApi.Controllers
 
             IReadOnlyList<string> fileNames = await fileSystem.ListFilesAsync(psdDirectoryPath);
 
-            return new ApiResponse(fileNames);
+            List<string> metadataFiles = new List<string>();
+            List<string> files = new List<string>();
+
+            foreach (string file in fileNames)
+            {
+                if (file.EndsWith("_metadata"))
+                    metadataFiles.Add(file);
+                else
+                    files.Add(file);
+            }
+
+            List<PhotoshopFileInfo> photoshopFiles = new List<PhotoshopFileInfo>();
+
+            foreach (string file in files)
+            {
+                PhotoshopFileMetadata? photoshopFileMetadata = null;
+
+                if (metadataFiles.Contains($"{file}_metadata"))
+                {
+                    using (Stream metadataStream = await fileSystem.ReadFileAsync($"{new PsdFilePath(file)}_metadata"))
+                    using (StreamReader reader = new StreamReader(metadataStream))
+                    {
+                        photoshopFileMetadata = PhotoshopFileMetadata.FromJson(await reader.ReadToEndAsync());
+                    }
+                }
+
+                photoshopFiles.Add(new PhotoshopFileInfo(file, photoshopFileMetadata));
+            }
+
+            return new ApiResponse(photoshopFiles);
         }
     }
 }

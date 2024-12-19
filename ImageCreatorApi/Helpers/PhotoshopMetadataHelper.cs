@@ -1,9 +1,11 @@
 ﻿using ImageCreatorApi.Factories;
 using ImageCreatorApi.FileSystems;
+using ImageCreatorApi.Models;
 using ImageCreatorApi.Models.Photoshop;
 using PhotopeaNet;
 using PhotopeaNet.Models;
 using PhotopeaNet.Models.ImageSaving;
+using System.Text;
 
 namespace ImageCreatorApi.Helpers
 {
@@ -11,11 +13,11 @@ namespace ImageCreatorApi.Helpers
     {
         private const int thumbnailSize = 100;
 
-        public static async Task CreateMetadataAsync(string filePath)
+        public static async Task CreateMetadataAsync(FilePath filePath)
         {
             IFileSystem fileSystem = FileSystemFactory.GetInstance();
 
-            using (Stream fileStream = await fileSystem.ReadFileAsync(filePath))
+            using (Stream fileStream = await fileSystem.ReadFileAsync(filePath.ToString()))
             using (Photopea photopea = PhotopeaFactory.GetInstance())
             {
                 await photopea.StartAsync();
@@ -46,7 +48,16 @@ namespace ImageCreatorApi.Helpers
 
                 using (MemoryStream memoryStream = new MemoryStream(await photopea.SaveImageAsync(new SaveJpgOptions(80))))
                 {
-                    
+                    string url = await SimpleCloudinaryHelper.Instance.UploadFileAsync(new ThumbnailFilePath($"{filePath.FileName}_thumbnail.jpg"), memoryStream);
+
+                    PhotoshopFileMetadata photoshopFileMetadata = new PhotoshopFileMetadata(url, photoshopLayers);
+                    string metadataJson = photoshopFileMetadata.ToJson();
+                    byte[] metadataBytes = Encoding.UTF8.GetBytes(metadataJson);
+
+                    using (MemoryStream metadataStream = new MemoryStream(metadataBytes))
+                    {
+                        await fileSystem.WriteFileAsync($"{filePath}_metadata", metadataStream);
+                    }
                 }
             }
         }

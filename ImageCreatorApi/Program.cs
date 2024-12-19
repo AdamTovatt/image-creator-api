@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.Features;
 using Sakur.WebApiUtilities.Helpers;
+using Sakur.WebApiUtilities.TaskScheduling;
 
 namespace ImageCreatorApi
 {
@@ -16,6 +17,7 @@ namespace ImageCreatorApi
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddQueuedTaskProcessing();
 
             WebApplication app = builder.Build();
 
