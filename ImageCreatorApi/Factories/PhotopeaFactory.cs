@@ -7,7 +7,7 @@ namespace ImageCreatorApi.Factories
     {
         public static Photopea GetInstance()
         {
-            return new Photopea(new PhotopeaStartInfo(false, 600, 500));
+            return new Photopea(new PhotopeaStartInfo(true, 600, 500));
         }
     }
 }
