@@ -7,6 +7,10 @@ using System.Net;
 using ImageCreatorApi.Models.Photoshop;
 using ImageCreatorApi.Helpers;
 using WebApiUtilities.TaskScheduling;
+using ImageCreatorApi.Models;
+using PhotopeaNet;
+using PhotopeaNet.Models;
+using PhotopeaNet.Models.ImageSaving;
 
 namespace ImageCreatorApi.Controllers
 {
@@ -59,6 +63,41 @@ namespace ImageCreatorApi.Controllers
                 await fileSystem.WriteFileAsync(filePathString, fileStream);
 
             return new ApiResponse("File was updated.");
+        }
+
+        [HttpPost("export-with-parameters")]
+        public async Task<IActionResult> ExportWithParameters([FromBody] ExportParameters exportParameters)
+        {
+            using (Photopea photopea = PhotopeaFactory.GetInstance())
+            {
+                await photopea.StartAsync();
+
+                IFileSystem fileSystem = FileSystemFactory.GetInstance();
+
+                using (Stream fileStream = await fileSystem.ReadFileAsync(new PsdFilePath(exportParameters.FileName).ToString()))
+                    await photopea.LoadFileFromStreamAsync(fileStream);
+
+                HashSet<string> requiredFonts = new HashSet<string>();
+
+                foreach (PhotopeaLayer layer in await photopea.GetAllLayersAsync())
+                {
+                    if (layer.Kind == LayerKind.Text && !requiredFonts.Contains(layer.TextItemData!.FontName))
+                        requiredFonts.Add(layer.TextItemData!.FontName);
+                }
+
+                foreach (string font in requiredFonts)
+                {
+                    using (Stream fontStream = await fileSystem.ReadFileAsync(new FontFilePath(font).ToString()))
+                        await photopea.LoadFileFromStreamAsync(fontStream);
+                }
+
+                foreach (string textLayerName in exportParameters.Texts.Keys)
+                    await photopea.SetTextValueAsync(textLayerName, exportParameters.Texts[textLayerName]);
+
+                byte[] exportedBytes = await photopea.SaveImageAsync(new SaveJpgOptions(100));
+
+                return File(exportedBytes, "application/jpeg", Path.GetFileNameWithoutExtension(exportParameters.FileName) + ".jpg");
+            }
         }
 
         [HttpGet("download")]
