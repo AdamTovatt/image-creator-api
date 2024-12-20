@@ -70,6 +70,7 @@ namespace ImageCreatorApi.Helpers
                 photoshopFiles.Add(new PhotoshopFileInfo(file, photoshopFileMetadata));
             }
 
+            photoshopFiles.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.Ordinal));
             return photoshopFiles;
         }
     }

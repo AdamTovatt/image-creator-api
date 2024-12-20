@@ -94,9 +94,6 @@ namespace ImageCreatorApi.Helpers
             // Combine the segments after "upload" and skip the version part (e.g., "v1234567")
             string publicId = string.Join('/', segments.Skip(uploadIndex + 2));
 
-            // Remove the file extension if present
-            publicId = Path.Combine(Path.GetDirectoryName(publicId) ?? "", Path.GetFileNameWithoutExtension(publicId)).Replace("\\", "/");
-
             return publicId;
         }
     }

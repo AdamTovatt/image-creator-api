@@ -5,6 +5,7 @@ using ImageCreatorApi.Models.Photoshop;
 using PhotopeaNet;
 using PhotopeaNet.Models;
 using PhotopeaNet.Models.ImageSaving;
+using WebApiUtilities.TaskScheduling;
 
 namespace ImageCreatorApi.Helpers
 {
@@ -51,6 +52,8 @@ namespace ImageCreatorApi.Helpers
                     }
                 }
             }
+
+            BackgroundTaskQueue.Instance.QueueTask(new BuildPhotoshopFilesCacheTask());
         }
     }
 }

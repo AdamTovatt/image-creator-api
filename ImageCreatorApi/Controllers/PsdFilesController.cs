@@ -1,5 +1,4 @@
 using ImageCreatorApi.Factories;
-using ImageCreatorApi.Managers;
 using ImageCreatorApi.FileSystems;
 using Microsoft.AspNetCore.Mvc;
 using Sakur.WebApiUtilities.Models;
@@ -9,7 +8,6 @@ using ImageCreatorApi.Helpers;
 using WebApiUtilities.TaskScheduling;
 using ImageCreatorApi.Models;
 using PhotopeaNet;
-using PhotopeaNet.Models;
 using PhotopeaNet.Models.ImageSaving;
 
 namespace ImageCreatorApi.Controllers

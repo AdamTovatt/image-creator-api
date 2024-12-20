@@ -7,6 +7,7 @@ namespace ImageCreatorApi.Helpers
     {
         public override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
+            await PhotoshopFileHelper.ClearCacheAsync();
             await PhotoshopFileHelper.GetAllFilesAsync(FileSystemFactory.GetInstance());
         }
     }
