@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using PhotopeaNet.Models;
+using System.Text.Json.Serialization;
 
 namespace ImageCreatorApi.Models.Photoshop
 {
@@ -26,6 +27,24 @@ namespace ImageCreatorApi.Models.Photoshop
             IsTextLayer = isTextLayer;
             IsImageLayer = isImageLayer;
             TextContent = textContent;
+        }
+
+        public static PhotoshopLayer FromPhotopeaLayer(PhotopeaLayer photopeaLayer)
+        {
+            string layerName = photopeaLayer.Name;
+
+            if (string.IsNullOrEmpty(layerName))
+                layerName = "(Missing layer name)";
+
+            bool recommendedForChanging = layerName[0] == '$' || layerName[0] == '@';
+            bool isImageLayer = photopeaLayer.Kind == LayerKind.Normal || photopeaLayer.Kind == LayerKind.SmartObject;
+            bool isTextLayer = photopeaLayer.Kind == LayerKind.Text;
+
+            string? textContent = null;
+            if (isTextLayer)
+                textContent = photopeaLayer.TextItemData?.Contents;
+
+            return new PhotoshopLayer(photopeaLayer.Name, recommendedForChanging, isTextLayer, isImageLayer, textContent);
         }
     }
 }

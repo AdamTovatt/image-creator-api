@@ -77,19 +77,7 @@ namespace ImageCreatorApi.Controllers
                 using (Stream fileStream = await fileSystem.ReadFileAsync(new PsdFilePath(exportParameters.FileName).ToString()))
                     await photopea.LoadFileFromStreamAsync(fileStream);
 
-                HashSet<string> requiredFonts = new HashSet<string>();
-
-                foreach (PhotopeaLayer layer in await photopea.GetAllLayersAsync())
-                {
-                    if (layer.Kind == LayerKind.Text && !requiredFonts.Contains(layer.TextItemData!.FontName))
-                        requiredFonts.Add(layer.TextItemData!.FontName);
-                }
-
-                foreach (string font in requiredFonts)
-                {
-                    using (Stream fontStream = await fileSystem.ReadFileAsync(new FontFilePath(font).ToString()))
-                        await photopea.LoadFileFromStreamAsync(fontStream);
-                }
+                await photopea.LoadFonts(from: fileSystem, fonts: await photopea.GetRequiredFonts(), suppressFontNotFoundExceptions: false);
 
                 foreach (string textLayerName in exportParameters.Texts.Keys)
                     await photopea.SetTextValueAsync(textLayerName, exportParameters.Texts[textLayerName]);
@@ -136,40 +124,8 @@ namespace ImageCreatorApi.Controllers
         public async Task<IActionResult> List()
         {
             IFileSystem fileSystem = FileSystemFactory.GetInstance();
-            string psdDirectoryPath = new PsdFilePath("file.psd").GetDirectoryPath();
 
-            IReadOnlyList<string> fileNames = await fileSystem.ListFilesAsync(psdDirectoryPath);
-
-            List<string> metadataFiles = new List<string>();
-            List<string> files = new List<string>();
-
-            foreach (string file in fileNames)
-            {
-                if (file.EndsWith("_metadata"))
-                    metadataFiles.Add(file);
-                else
-                    files.Add(file);
-            }
-
-            List<PhotoshopFileInfo> photoshopFiles = new List<PhotoshopFileInfo>();
-
-            foreach (string file in files)
-            {
-                PhotoshopFileMetadata? photoshopFileMetadata = null;
-
-                if (metadataFiles.Contains($"{file}_metadata"))
-                {
-                    using (Stream metadataStream = await fileSystem.ReadFileAsync($"{new PsdFilePath(file)}_metadata"))
-                    using (StreamReader reader = new StreamReader(metadataStream))
-                    {
-                        photoshopFileMetadata = PhotoshopFileMetadata.FromJson(await reader.ReadToEndAsync());
-                    }
-                }
-
-                photoshopFiles.Add(new PhotoshopFileInfo(file, photoshopFileMetadata));
-            }
-
-            return new ApiResponse(photoshopFiles);
+            return new ApiResponse(await PhotoshopFileHelper.GetAllFilesAsync(fileSystem));
         }
     }
 }

@@ -4,11 +4,6 @@ namespace ImageCreatorApi.Models.Photoshop
 {
     public class PsdFilePath : FilePath
     {
-        public PsdFilePath(string fileName)
-            : base(
-                EnsureFileExtension(fileName, ".psd"),
-                new List<string> { "photoshop" }
-            )
-        { }
+        public PsdFilePath(string fileName) : base(EnsureFileExtension(fileName, ".psd"), "photoshop") { }
     }
 }

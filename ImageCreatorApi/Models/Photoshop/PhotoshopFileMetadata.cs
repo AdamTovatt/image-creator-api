@@ -1,4 +1,6 @@
-﻿using System.Text.Json;
+﻿using ImageCreatorApi.FileSystems;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ImageCreatorApi.Models.Photoshop
@@ -25,6 +27,21 @@ namespace ImageCreatorApi.Models.Photoshop
         public string ToJson()
         {
             return JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
+        }
+
+        public byte[] ToUtf8EncondedJsonBytes()
+        {
+            string json = ToJson();
+            return Encoding.UTF8.GetBytes(json);
+        }
+
+        public async static Task<PhotoshopFileMetadata> ReadAsync(IFileSystem from, PsdFileMetadataPath withFilePath)
+        {
+            using (Stream metadataStream = await from.ReadFileAsync(withFilePath.ToString()))
+            using (StreamReader reader = new StreamReader(metadataStream))
+            {
+                return FromJson(await reader.ReadToEndAsync());
+            }
         }
     }
 }

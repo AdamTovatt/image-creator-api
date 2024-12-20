@@ -16,12 +16,12 @@ namespace ImageCreatorApi.FileSystems
 
         private static readonly char[] invalidChars = Path.GetInvalidFileNameChars();
 
-        protected FilePath(string fileName, List<string> parts)
+        protected FilePath(string fileName, params string[] parts)
         {
             FileName = CleanFileName(fileName);
-            this.parts = parts;
+            this.parts = parts.ToList();
 
-            parts.Insert(0, "image_creator");
+            this.parts.Insert(0, "image_creator");
         }
 
         private string CleanFileName(string fileName)

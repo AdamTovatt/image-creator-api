@@ -5,7 +5,6 @@ using ImageCreatorApi.Models.Photoshop;
 using PhotopeaNet;
 using PhotopeaNet.Models;
 using PhotopeaNet.Models.ImageSaving;
-using System.Text;
 
 namespace ImageCreatorApi.Helpers
 {
@@ -13,9 +12,20 @@ namespace ImageCreatorApi.Helpers
     {
         private const int thumbnailSize = 100;
 
-        public static async Task CreateMetadataAsync(FilePath filePath)
+        public static async Task CreateMetadataAsync(PsdFilePath filePath)
         {
+            PsdFileMetadataPath metadataFilePathObject = new PsdFileMetadataPath(filePath.FileName);
+            string metadataFilePath = metadataFilePathObject.ToString();
+
             IFileSystem fileSystem = FileSystemFactory.GetInstance();
+
+            if (await fileSystem.FileExistsAsync(metadataFilePath)) // Previous metadata file exists, let's clean that up first
+            {
+                PhotoshopFileMetadata metadata = await PhotoshopFileMetadata.ReadAsync(from: fileSystem, withFilePath: metadataFilePathObject);
+
+                await fileSystem.DeleteFileAsync(metadataFilePath);
+                await SimpleCloudinaryHelper.Instance.DeleteFileAsync(metadata.ThumbnailUrl);
+            }
 
             using (Stream fileStream = await fileSystem.ReadFileAsync(filePath.ToString()))
             using (Photopea photopea = PhotopeaFactory.GetInstance())
@@ -23,61 +33,24 @@ namespace ImageCreatorApi.Helpers
                 await photopea.StartAsync();
                 await photopea.LoadFileFromStreamAsync(fileStream);
 
-                HashSet<string> requiredFonts = new HashSet<string>();
-                List<PhotoshopLayer> photoshopLayers = new List<PhotoshopLayer>();
+                List<PhotopeaLayer> photopeaLayes = await photopea.GetAllLayersAsync();
 
-                foreach (PhotopeaLayer layer in await photopea.GetAllLayersAsync())
-                {
-                    photoshopLayers.Add(GetPhotoshopLayerFromPhotopeaLayer(layer));
-
-                    if (layer.Kind == LayerKind.Text && !requiredFonts.Contains(layer.TextItemData!.FontName))
-                        requiredFonts.Add(layer.TextItemData!.FontName);
-                }
-
-                foreach (string font in requiredFonts)
-                {
-                    try
-                    {
-                        using (Stream fontStream = await fileSystem.ReadFileAsync(new FontFilePath(font).ToString()))
-                            await photopea.LoadFileFromStreamAsync(fontStream);
-                    }
-                    catch (FileNotFoundException) { }
-                }
+                await photopea.LoadFonts(from: fileSystem, fonts: await photopea.GetRequiredFonts(photopeaLayes), suppressFontNotFoundExceptions: true);
 
                 await photopea.ResizeImage(thumbnailSize, thumbnailSize);
 
                 using (MemoryStream memoryStream = new MemoryStream(await photopea.SaveImageAsync(new SaveJpgOptions(80))))
                 {
-                    string url = await SimpleCloudinaryHelper.Instance.UploadFileAsync(new ThumbnailFilePath($"{filePath.FileName}_thumbnail.jpg"), memoryStream);
+                    string url = await SimpleCloudinaryHelper.Instance.UploadFileAsync(new ThumbnailFilePath(filePath.FileName), memoryStream);
 
-                    PhotoshopFileMetadata photoshopFileMetadata = new PhotoshopFileMetadata(url, photoshopLayers);
-                    string metadataJson = photoshopFileMetadata.ToJson();
-                    byte[] metadataBytes = Encoding.UTF8.GetBytes(metadataJson);
+                    PhotoshopFileMetadata photoshopFileMetadata = new PhotoshopFileMetadata(url, photopeaLayes.ToPhotoshopLayers());
 
-                    using (MemoryStream metadataStream = new MemoryStream(metadataBytes))
+                    using (MemoryStream metadataStream = new MemoryStream(photoshopFileMetadata.ToUtf8EncondedJsonBytes()))
                     {
-                        await fileSystem.WriteFileAsync($"{filePath}_metadata", metadataStream);
+                        await fileSystem.WriteFileAsync(metadataFilePath, metadataStream);
                     }
                 }
             }
-        }
-
-        private static PhotoshopLayer GetPhotoshopLayerFromPhotopeaLayer(PhotopeaLayer layer)
-        {
-            string layerName = layer.Name;
-
-            if (string.IsNullOrEmpty(layerName))
-                layerName = "(Missing layer name)";
-
-            bool recommendedForChanging = layerName[0] == '$' || layerName[0] == '@';
-            bool isImageLayer = layer.Kind == LayerKind.Normal || layer.Kind == LayerKind.SmartObject;
-            bool isTextLayer = layer.Kind == LayerKind.Text;
-
-            string? textContent = null;
-            if (isTextLayer)
-                textContent = layer.TextItemData?.Contents;
-
-            return new PhotoshopLayer(layer.Name, recommendedForChanging, isTextLayer, isImageLayer, textContent);
         }
     }
 }
