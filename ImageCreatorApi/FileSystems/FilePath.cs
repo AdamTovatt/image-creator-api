@@ -62,6 +62,11 @@ namespace ImageCreatorApi.FileSystems
             return InternalGetDirectoryPath(null);
         }
 
+        public string GetFileNameWithoutExtension()
+        {
+            return Path.GetFileNameWithoutExtension(FileName);
+        }
+
         protected string InternalGetDirectoryPath(int? maxSubdirectoryDepth)
         {
             StringBuilder pathBuilder = new StringBuilder();

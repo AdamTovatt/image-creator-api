@@ -9,6 +9,7 @@ using WebApiUtilities.TaskScheduling;
 using ImageCreatorApi.Models;
 using PhotopeaNet;
 using PhotopeaNet.Models.ImageSaving;
+using System.Text.Json;
 
 namespace ImageCreatorApi.Controllers
 {
@@ -60,30 +61,66 @@ namespace ImageCreatorApi.Controllers
             using (Stream fileStream = psdFile.OpenReadStream())
                 await fileSystem.WriteFileAsync(filePathString, fileStream);
 
+            BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(filePath.FileName));
+
             return new ApiResponse("File was updated.");
         }
 
         [HttpPost("export-with-parameters")]
-        public async Task<IActionResult> ExportWithParameters([FromBody] ExportParameters exportParameters)
+        public async Task<IActionResult> ExportWithParameters([FromForm] string parametersJson, [FromForm] List<IFormFile> imageFiles)
         {
-            using (Photopea photopea = PhotopeaFactory.GetInstance())
+            try
             {
-                await photopea.StartAsync();
+                ExportParameters? parameters = JsonSerializer.Deserialize<ExportParameters>(parametersJson);
+
+                if (parameters == null)
+                    return new ApiResponse("Missing a parametersJson text field in form body that can be deserialized to an intance of ExportParameters");
+
+                parameters.AddImageFiles(imageFiles);
 
                 IFileSystem fileSystem = FileSystemFactory.GetInstance();
+                PsdFilePath psdFilePath = parameters.GetPsdFilePath();
 
-                using (Stream fileStream = await fileSystem.ReadFileAsync(new PsdFilePath(exportParameters.FileName).ToString()))
-                    await photopea.LoadFileFromStreamAsync(fileStream);
+                using (Photopea photopea = await PhotopeaFactory.StartNewInstanceAsync())
+                {
+                    await photopea.LoadFullProjectFile(fileSystem, psdFilePath);
 
-                await photopea.LoadFonts(from: fileSystem, fonts: await photopea.GetRequiredFonts(), suppressFontNotFoundExceptions: false);
+                    await photopea.ApplyExportParameters(parameters);
 
-                foreach (string textLayerName in exportParameters.Texts.Keys)
-                    await photopea.SetTextValueAsync(textLayerName, exportParameters.Texts[textLayerName]);
+                    byte[] exportedBytes = await photopea.SaveImageAsync(new SaveJpgOptions(100));
 
-                byte[] exportedBytes = await photopea.SaveImageAsync(new SaveJpgOptions(100));
-
-                return File(exportedBytes, "application/jpeg", Path.GetFileNameWithoutExtension(exportParameters.FileName) + ".jpg");
+                    return File(exportedBytes, "application/jpeg", $"{psdFilePath.GetFileNameWithoutExtension()}.jpg");
+                }
             }
+            catch (ApiException apiException)
+            {
+                return new ApiResponse(apiException);
+            }
+        }
+
+        [HttpDelete("delete")]
+        public async Task<IActionResult> Delete(string fileName)
+        {
+            IFileSystem fileSystem = FileSystemFactory.GetInstance();
+
+            PsdFilePath psdFilePath = new PsdFilePath(fileName);
+            PsdFileMetadataPath psdFileMetadataPath = new PsdFileMetadataPath(fileName);
+
+            if (!await fileSystem.FileExistsAsync(psdFilePath.ToString()))
+                return new ApiResponse($"No such file found: {fileName}");
+
+            if (await fileSystem.FileExistsAsync(psdFileMetadataPath.ToString()))
+            {
+                PhotoshopFileMetadata metadata = await PhotoshopFileMetadata.ReadAsync(from: fileSystem, psdFileMetadataPath);
+                await SimpleCloudinaryHelper.Instance.DeleteFileAsync(metadata.ThumbnailUrl);
+                await fileSystem.DeleteFileAsync(psdFileMetadataPath.ToString());
+            }
+
+            await fileSystem.DeleteFileAsync(psdFilePath.ToString());
+
+            BackgroundTaskQueue.Instance.QueueTask(new BuildPhotoshopFilesCacheTask());
+
+            return new ApiResponse("File was deleted");
         }
 
         [HttpGet("download")]
