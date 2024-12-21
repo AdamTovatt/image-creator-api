@@ -1,6 +1,0 @@
-@ImageCreatorApi_HostAddress = http://localhost:5028
-
-GET {{ImageCreatorApi_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

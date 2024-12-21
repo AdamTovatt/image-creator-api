@@ -1,5 +1,6 @@
 using ImageCreatorApi.Helpers;
-using Microsoft.AspNetCore.Http.Features;
+using ImageCreatorApi.Helpers.Users;
+using Sakur.WebApiUtilities;
 using Sakur.WebApiUtilities.Helpers;
 using Sakur.WebApiUtilities.TaskScheduling;
 using WebApiUtilities.TaskScheduling;
@@ -21,6 +22,13 @@ namespace ImageCreatorApi
             builder.Services.AddSwaggerGen();
             builder.Services.AddQueuedTaskProcessing();
 
+            builder.Services.SetupAuth(
+                authDomain: EnvironmentHelper.GetEnvironmentVariable(StringConstants.JwtIssuer),
+                authAudience: EnvironmentHelper.GetEnvironmentVariable(StringConstants.JwtAudience),
+                permissions: new List<string>() { "admin" }
+            );
+
+            BackgroundTaskQueue.Instance.QueueTask(new BuildUsersCacheTask());
             BackgroundTaskQueue.Instance.QueueTask(new BuildPhotoshopFilesCacheTask());
 
             WebApplication app = builder.Build();
@@ -33,6 +41,7 @@ namespace ImageCreatorApi
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
@@ -42,9 +51,20 @@ namespace ImageCreatorApi
 
         private static void AssertEnvironmentVariables()
         {
-            EnvironmentHelper.GetEnvironmentVariable("CLOUDINARY_CLOUD", 3);
-            EnvironmentHelper.GetEnvironmentVariable("CLOUDINARY_KEY", 6);
-            EnvironmentHelper.GetEnvironmentVariable("CLOUDINARY_SECRET", 6);
+            // Cloudinary-related environment variables
+            EnvironmentHelper.GetEnvironmentVariable(StringConstants.CloudinaryCloud, 6);
+            EnvironmentHelper.GetEnvironmentVariable(StringConstants.CloudinaryKey, 6);
+            EnvironmentHelper.GetEnvironmentVariable(StringConstants.CloudinarySecret, 6);
+
+            // Auth-related environment variables
+            EnvironmentHelper.GetEnvironmentVariable(StringConstants.MagicLinkSecret, 24);
+            EnvironmentHelper.GetEnvironmentVariable(StringConstants.JwtSecret, 24);
+            EnvironmentHelper.GetEnvironmentVariable(StringConstants.JwtIssuer, 12);
+            EnvironmentHelper.GetEnvironmentVariable(StringConstants.JwtAudience, 12);
+
+            // Email-related environment variables
+            EnvironmentHelper.GetEnvironmentVariable(StringConstants.PostmarkApiKey, 12);
+            EnvironmentHelper.GetEnvironmentVariable(StringConstants.EmailSender, 8);
         }
     }
 }

@@ -11,9 +11,9 @@ namespace ImageCreatorApi.Factories
         {
             if (instance == null)
             {
-                string cloud = EnvironmentHelper.GetEnvironmentVariable("CLOUDINARY_CLOUD");
-                string key = EnvironmentHelper.GetEnvironmentVariable("CLOUDINARY_KEY");
-                string secret = EnvironmentHelper.GetEnvironmentVariable("CLOUDINARY_SECRET");
+                string cloud = EnvironmentHelper.GetEnvironmentVariable(StringConstants.CloudinaryCloud);
+                string key = EnvironmentHelper.GetEnvironmentVariable(StringConstants.CloudinaryKey);
+                string secret = EnvironmentHelper.GetEnvironmentVariable(StringConstants.CloudinarySecret);
 
                 instance = new CloudinaryFileSystem(cloud, key, secret);
             }

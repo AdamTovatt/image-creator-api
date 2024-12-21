@@ -1,11 +1,10 @@
 ﻿using ImageCreatorApi.Factories;
 using ImageCreatorApi.FileSystems;
-using ImageCreatorApi.Helpers;
 using ImageCreatorApi.Models.Photoshop;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sakur.WebApiUtilities.Models;
 using System.Net;
-using WebApiUtilities.TaskScheduling;
 
 namespace ImageCreatorApi.Controllers
 {
@@ -13,6 +12,7 @@ namespace ImageCreatorApi.Controllers
     [Route("[controller]")]
     public class FontController : ControllerBase
     {
+        [Authorize]
         [HttpPost("upload")]
         public async Task<IActionResult> Upload(IFormFile fontFile)
         {

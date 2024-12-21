@@ -13,8 +13,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Resources\MagicLinkEmail.html" />
+    <None Remove="Resources\MagicLinkPlainText.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
     <_WebToolingArtifacts Remove="Properties\launchSettings.json" />
     <_WebToolingArtifacts Remove="Properties\launchSettings_git.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\MagicLinkEmail.html" />
+    <EmbeddedResource Include="Resources\MagicLinkPlainText.txt" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,7 +37,8 @@
 
   <ItemGroup>
     <PackageReference Include="CloudinaryDotNet" Version="1.27.0" />
-    <PackageReference Include="SakurWebApiUtilities" Version="1.4.0" />
+    <PackageReference Include="Postmark" Version="5.2.0" />
+    <PackageReference Include="SakurWebApiUtilities" Version="1.5.1" />
     <PackageReference Include="Selenium.WebDriver" Version="4.27.0" />
     <PackageReference Include="Selenium.WebDriver.ChromeDriver" Version="131.0.6778.20400" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />

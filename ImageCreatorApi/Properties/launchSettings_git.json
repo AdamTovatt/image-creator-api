@@ -11,7 +11,13 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "CLOUDINARY_CLOUD": "cloud",
         "CLOUDINARY_KEY": "key",
-        "CLOUDINARY_SECRET": "secret"
+        "CLOUDINARY_SECRET": "secret",
+        "MAGIC_LINK_SECRET": "magic-link-secret",
+        "JWT_SECRET": "jwt-secret",
+        "JWT_ISSUER": "issuer",
+        "JWT_AUDIENCE": "audience",
+        "POSTMARK_API_KEY": "postmark-api-key",
+        "EMAIL_SENDER": "email@example.com"
       }
     }
   }

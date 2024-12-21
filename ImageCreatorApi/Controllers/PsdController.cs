@@ -10,20 +10,22 @@ using ImageCreatorApi.Models;
 using PhotopeaNet;
 using PhotopeaNet.Models.ImageSaving;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ImageCreatorApi.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class PsdFilesController : ControllerBase
+    public class PsdController : ControllerBase
     {
-        private readonly ILogger<PsdFilesController> _logger;
+        private readonly ILogger<PsdController> _logger;
 
-        public PsdFilesController(ILogger<PsdFilesController> logger)
+        public PsdController(ILogger<PsdController> logger)
         {
             _logger = logger;
         }
 
+        [Authorize]
         [HttpPost("upload")]
         public async Task<IActionResult> Upload(IFormFile psdFile)
         {
@@ -44,6 +46,7 @@ namespace ImageCreatorApi.Controllers
             return new ApiResponse("File was uploaded.");
         }
 
+        [Authorize]
         [HttpPost("update")]
         public async Task<IActionResult> Update(IFormFile psdFile)
         {
@@ -66,6 +69,7 @@ namespace ImageCreatorApi.Controllers
             return new ApiResponse("File was updated.");
         }
 
+        [Authorize]
         [HttpPost("export-with-parameters")]
         public async Task<IActionResult> ExportWithParameters([FromForm] string parametersJson, [FromForm] List<IFormFile> imageFiles)
         {
@@ -98,6 +102,7 @@ namespace ImageCreatorApi.Controllers
             }
         }
 
+        [Authorize]
         [HttpDelete("delete")]
         public async Task<IActionResult> Delete(string fileName)
         {
@@ -123,6 +128,7 @@ namespace ImageCreatorApi.Controllers
             return new ApiResponse("File was deleted");
         }
 
+        [Authorize]
         [HttpGet("download")]
         public async Task<IActionResult> Download(string fileName)
         {
@@ -147,6 +153,7 @@ namespace ImageCreatorApi.Controllers
             }
         }
 
+        [Authorize]
         [HttpPost("create-metadata")]
         public async Task<IActionResult> CreateMetadata(string fileName)
         {
@@ -155,6 +162,7 @@ namespace ImageCreatorApi.Controllers
             return new ApiResponse("Ok");
         }
 
+        [Authorize]
         [HttpGet("list")]
         public async Task<IActionResult> List()
         {

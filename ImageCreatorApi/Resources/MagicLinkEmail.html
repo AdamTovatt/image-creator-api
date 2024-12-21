@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<html lang="en" style="font-size: 16px">
+<head>
+    <meta name="color-scheme" content="dark only" />
+    <meta name="supported-color-schemes" content="dark only" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8" />
+    <title>Magic Link Login</title>
+</head>
+<body style="
+      width: 100%;
+      background-color: #1F1D2B; /* Depth0 */
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1rem;
+      color: #FFFFFF; /* White */
+      margin: 0;
+      padding: 0;
+    ">
+    <table style="
+        width: 100%;
+        max-width: 35rem;
+        margin-left: auto;
+        margin-right: auto;
+        border-collapse: collapse;
+      ">
+        <tr style="background-color: #252836; /* Depth1 */">
+            <td style="padding: 2rem">
+                <a style="
+              text-decoration: none;
+              color: #FFFFFF;
+              font-size: 1.2rem;
+              font-weight: 600;
+            "
+                   href="{{baseUrl}}">
+                    {{productName}}
+                </a>
+            </td>
+            <td>
+                <p style="
+              font-weight: 400;
+              text-align: right;
+              margin: 0;
+              margin-right: 2rem;
+            ">
+                    {{dateAndTime}}
+                </p>
+            </td>
+        </tr>
+    </table>
+    <table style="
+        width: 100%;
+        max-width: 35rem;
+        margin-left: auto;
+        margin-right: auto;
+        background-color: #313441; /* Depth2 */
+        border-collapse: collapse;
+      ">
+        <tr>
+            <td style="padding: 1rem">
+                <h1 style="margin-bottom: 0">Hello!</h1>
+                <p style="font-weight: 300; margin-top: 0">
+                    You requested to log in to {{productName}}.<br /><br />
+                    Use this link:
+                </p>
+                <p style="font-weight: 300">
+                    <a style="color: #FFFFFF;" href="{{baseUrl}}{{magicLinkToken}}">
+                        {{baseUrl}}{{magicLinkToken}}
+                    </a>
+                </p>
+                <p style="font-weight: 300">
+                    If the link doesn't work, copy and paste it into your browser:
+                </p>
+                <p style="font-weight: 300">{{baseUrl}}{{magicLinkToken}}</p>
+                <p style="font-weight: 300">
+                    Or manually enter this code: {{magicLinkToken}}
+                </p>
+                <div style="min-height: 2rem"></div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
