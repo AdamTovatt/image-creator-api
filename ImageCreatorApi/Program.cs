@@ -42,6 +42,14 @@ namespace ImageCreatorApi
 
             app.UseHttpsRedirection();
 
+            app.UseCors(options =>
+            {
+                options.AllowAnyHeader()
+                       .AllowAnyMethod()
+                       .SetIsOriginAllowed(origin => true) // Allow any origin
+                       .AllowCredentials(); // Allow credentials (e.g., cookies)
+            });
+
             app.UseAuthentication();
             app.UseAuthorization();
 
