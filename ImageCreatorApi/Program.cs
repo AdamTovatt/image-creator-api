@@ -4,7 +4,7 @@ using Sakur.WebApiUtilities;
 using Sakur.WebApiUtilities.Helpers;
 using Sakur.WebApiUtilities.TaskScheduling;
 using WebApiUtilities.TaskScheduling;
-
+    
 namespace ImageCreatorApi
 {
     public class Program
@@ -25,7 +25,8 @@ namespace ImageCreatorApi
             builder.Services.SetupAuth(
                 authDomain: EnvironmentHelper.GetEnvironmentVariable(StringConstants.JwtIssuer),
                 authAudience: EnvironmentHelper.GetEnvironmentVariable(StringConstants.JwtAudience),
-                permissions: new List<string>() { "admin" }
+                permissions: new List<string>() { "admin" },
+                jwtSecretKey: EnvironmentHelper.GetEnvironmentVariable(StringConstants.JwtSecret, 24)
             );
 
             BackgroundTaskQueue.Instance.QueueTask(new BuildUsersCacheTask());
