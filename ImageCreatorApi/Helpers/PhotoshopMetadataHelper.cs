@@ -36,6 +36,9 @@ namespace ImageCreatorApi.Helpers
 
                 List<PhotopeaLayer> photopeaLayes = await photopea.GetAllLayersAsync();
 
+                int width = 1080; // TODO: Get the actual width from the PSD file
+                int height = 1080; // TODO: Get the actual height from the PSD file
+
                 await photopea.LoadFonts(from: fileSystem, fonts: await photopea.GetRequiredFonts(photopeaLayes), suppressFontNotFoundExceptions: true);
 
                 await photopea.ResizeImage(thumbnailSize, thumbnailSize);
@@ -44,7 +47,7 @@ namespace ImageCreatorApi.Helpers
                 {
                     string url = await SimpleCloudinaryHelper.Instance.UploadFileAsync(new ThumbnailFilePath(filePath.FileName), memoryStream);
 
-                    PhotoshopFileMetadata photoshopFileMetadata = new PhotoshopFileMetadata(url, photopeaLayes.ToPhotoshopLayers());
+                    PhotoshopFileMetadata photoshopFileMetadata = new PhotoshopFileMetadata(url, photopeaLayes.ToPhotoshopLayers(), width, height, memoryStream.Length);
 
                     using (MemoryStream metadataStream = new MemoryStream(photoshopFileMetadata.ToUtf8EncondedJsonBytes()))
                     {
