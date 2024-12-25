@@ -155,10 +155,13 @@ namespace ImageCreatorApi.Controllers
 
         [Authorize]
         [HttpPost("create-metadata")]
-        public async Task<IActionResult> CreateMetadata(string fileName)
+        public async Task<IActionResult> CreateMetadata(string fileName, bool inBackground)
         {
-            await Task.CompletedTask;
-            BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(fileName));
+            if (inBackground)
+                BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(fileName));
+            else
+                await PhotoshopMetadataHelper.CreateMetadataAsync(new PsdFilePath(fileName));
+
             return new ApiResponse("Ok");
         }
 

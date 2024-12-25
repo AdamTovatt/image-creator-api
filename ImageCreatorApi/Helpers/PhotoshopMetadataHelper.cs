@@ -11,7 +11,7 @@ namespace ImageCreatorApi.Helpers
 {
     public class PhotoshopMetadataHelper
     {
-        private const int thumbnailSize = 100;
+        private const int thumbnailSize = 64;
 
         public static async Task CreateMetadataAsync(PsdFilePath filePath)
         {
@@ -34,12 +34,9 @@ namespace ImageCreatorApi.Helpers
                 await photopea.StartAsync();
                 await photopea.LoadFileFromStreamAsync(fileStream);
 
-                List<PhotopeaLayer> photopeaLayes = await photopea.GetAllLayersAsync();
+                PhotopeaDocumentData documentData = await photopea.GetDocumentDataAsync();
 
-                int width = 1080; // TODO: Get the actual width from the PSD file
-                int height = 1080; // TODO: Get the actual height from the PSD file
-
-                await photopea.LoadFonts(from: fileSystem, fonts: await photopea.GetRequiredFonts(photopeaLayes), suppressFontNotFoundExceptions: true);
+                await photopea.LoadFonts(from: fileSystem, fonts: documentData.RequiredFonts, suppressFontNotFoundExceptions: true);
 
                 await photopea.ResizeImage(thumbnailSize, thumbnailSize);
 
@@ -47,12 +44,16 @@ namespace ImageCreatorApi.Helpers
                 {
                     string url = await SimpleCloudinaryHelper.Instance.UploadFileAsync(new ThumbnailFilePath(filePath.FileName), memoryStream);
 
-                    PhotoshopFileMetadata photoshopFileMetadata = new PhotoshopFileMetadata(url, photopeaLayes.ToPhotoshopLayers(), width, height, memoryStream.Length);
+                    List<PhotoshopLayer> layers = documentData.FlattenedLayers.ToPhotoshopLayers();
+                    PhotoshopFileMetadata photoshopFileMetadata = new PhotoshopFileMetadata(
+                        url,
+                        layers,
+                        documentData.Width,
+                        documentData.Height,
+                        fileStream.Length);
 
                     using (MemoryStream metadataStream = new MemoryStream(photoshopFileMetadata.ToUtf8EncondedJsonBytes()))
-                    {
                         await fileSystem.WriteFileAsync(metadataFilePath, metadataStream);
-                    }
                 }
             }
 

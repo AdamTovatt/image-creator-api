@@ -4,26 +4,19 @@ using ImageCreatorApi.Models.Photoshop;
 using PhotopeaNet;
 using PhotopeaNet.Models;
 using Sakur.WebApiUtilities.Models;
+using System.Collections.ObjectModel;
 using System.Net;
 
 namespace ImageCreatorApi.Helpers
 {
     public static class PhotopeaExtensions
     {
-        public static async Task<HashSet<string>> GetRequiredFonts(this Photopea photopea, IEnumerable<PhotopeaLayer>? layers = null)
+        public static async Task<ReadOnlyCollection<string>> GetRequiredFonts(this Photopea photopea, PhotopeaDocumentData? documentData = null)
         {
-            if (layers == null)
-                layers = await photopea.GetAllLayersAsync();
+            if (documentData == null)
+                documentData = await photopea.GetDocumentDataAsync();
 
-            HashSet<string> requiredFonts = new HashSet<string>();
-
-            foreach (PhotopeaLayer layer in layers)
-            {
-                if (layer.Kind == LayerKind.Text && !requiredFonts.Contains(layer.TextItemData!.FontName))
-                    requiredFonts.Add(layer.TextItemData!.FontName);
-            }
-
-            return requiredFonts;
+            return documentData.RequiredFonts;
         }
 
         public static async Task LoadFonts(this Photopea photopea, IFileSystem from, IEnumerable<string> fonts, bool suppressFontNotFoundExceptions)

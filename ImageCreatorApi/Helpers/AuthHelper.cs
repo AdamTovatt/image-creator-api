@@ -20,7 +20,7 @@ namespace ImageCreatorApi.Helpers
                     issuer: EnvironmentHelper.GetEnvironmentVariable(StringConstants.JwtIssuer),
                     audience: EnvironmentHelper.GetEnvironmentVariable(StringConstants.JwtAudience),
                     magicLinkExpirationMinutes: 15,
-                    jwtExpirationMinutes: 60
+                    jwtExpirationMinutes: 60 * 2
                 );
             }
         }
