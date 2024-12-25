@@ -13,7 +13,7 @@ namespace ImageCreatorApi.Helpers
     {
         private const int thumbnailSize = 64;
 
-        public static async Task CreateMetadataAsync(PsdFilePath filePath)
+        public static async Task CreateMetadataAsync(PsdFilePath filePath, bool backgroundTask)
         {
             PsdFileMetadataPath metadataFilePathObject = new PsdFileMetadataPath(filePath.FileName);
             string metadataFilePath = metadataFilePathObject.ToString();
@@ -57,7 +57,12 @@ namespace ImageCreatorApi.Helpers
                 }
             }
 
-            BackgroundTaskQueue.Instance.QueueTask(new BuildPhotoshopFilesCacheTask());
+            BuildPhotoshopFilesCacheTask buildPhotoshopFilesCacheTask = new BuildPhotoshopFilesCacheTask();
+
+            if (backgroundTask)
+                BackgroundTaskQueue.Instance.QueueTask(buildPhotoshopFilesCacheTask);
+            else
+                await buildPhotoshopFilesCacheTask.ExecuteAsync(CancellationToken.None);
         }
     }
 }

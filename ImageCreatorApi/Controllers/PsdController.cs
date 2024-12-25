@@ -157,10 +157,17 @@ namespace ImageCreatorApi.Controllers
         [HttpPost("create-metadata")]
         public async Task<IActionResult> CreateMetadata(string fileName, bool inBackground)
         {
-            if (inBackground)
-                BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(fileName));
-            else
-                await PhotoshopMetadataHelper.CreateMetadataAsync(new PsdFilePath(fileName));
+            try
+            {
+                if (inBackground)
+                    BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(fileName));
+                else
+                    await PhotoshopMetadataHelper.CreateMetadataAsync(new PsdFilePath(fileName), false);
+            }
+            catch (Exception exception)
+            {
+                return new ApiResponse($"An error occurred when creating metadata: {exception.Message}", HttpStatusCode.InternalServerError);
+            }
 
             return new ApiResponse("Ok");
         }

@@ -14,7 +14,7 @@ namespace ImageCreatorApi.Helpers
 
         public override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            await PhotoshopMetadataHelper.CreateMetadataAsync(new PsdFilePath(fileName));
+            await PhotoshopMetadataHelper.CreateMetadataAsync(new PsdFilePath(fileName), true);
         }
     }
 }
