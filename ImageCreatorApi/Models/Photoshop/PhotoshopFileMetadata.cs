@@ -10,6 +10,9 @@ namespace ImageCreatorApi.Models.Photoshop
         [JsonPropertyName("thumbnailUrl")]
         public string ThumbnailUrl { get; set; }
 
+        [JsonPropertyName("previewUrl")]
+        public string PreviewUrl { get; set; }
+
         [JsonPropertyName("layers")]
         public List<PhotoshopLayer> Layers { get; set; }
 
@@ -22,9 +25,10 @@ namespace ImageCreatorApi.Models.Photoshop
         [JsonPropertyName("fileSize")]
         public long FileSize { get; set; }
 
-        public PhotoshopFileMetadata(string thumbnailUrl, List<PhotoshopLayer> layers, int width, int height, long fileSize)
+        public PhotoshopFileMetadata(string thumbnailUrl, string previewUrl, List<PhotoshopLayer> layers, int width, int height, long fileSize)
         {
             ThumbnailUrl = thumbnailUrl;
+            PreviewUrl = previewUrl;
             Layers = layers;
             Width = width;
             Height = height;

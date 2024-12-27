@@ -38,23 +38,31 @@ namespace ImageCreatorApi.Helpers
 
                 await photopea.LoadFonts(from: fileSystem, fonts: documentData.RequiredFonts, suppressFontNotFoundExceptions: true);
 
+                string? thumbnailUrl = null;
+                string? fullsizePreviewUrl = null;
+
+                using (MemoryStream memoryStream = new MemoryStream(await photopea.SaveImageAsync(new SaveJpgOptions(80))))
+                    fullsizePreviewUrl = await SimpleCloudinaryHelper.Instance.UploadFileAsync(new FullSizePreviewFilePath(filePath.FileName), memoryStream);
+
                 await photopea.ResizeImage(thumbnailSize, thumbnailSize);
 
                 using (MemoryStream memoryStream = new MemoryStream(await photopea.SaveImageAsync(new SaveJpgOptions(80))))
-                {
-                    string url = await SimpleCloudinaryHelper.Instance.UploadFileAsync(new ThumbnailFilePath(filePath.FileName), memoryStream);
+                    thumbnailUrl = await SimpleCloudinaryHelper.Instance.UploadFileAsync(new ThumbnailFilePath(filePath.FileName), memoryStream);
 
-                    List<PhotoshopLayer> layers = documentData.FlattenedLayers.ToPhotoshopLayers();
-                    PhotoshopFileMetadata photoshopFileMetadata = new PhotoshopFileMetadata(
-                        url,
-                        layers,
-                        documentData.Width,
-                        documentData.Height,
-                        fileStream.Length);
+                if (thumbnailUrl == null || fullsizePreviewUrl == null)
+                    throw new Exception("Failed to upload thumbnail or fullsize preview to cloudinary");
 
-                    using (MemoryStream metadataStream = new MemoryStream(photoshopFileMetadata.ToUtf8EncondedJsonBytes()))
-                        await fileSystem.WriteFileAsync(metadataFilePath, metadataStream);
-                }
+                List<PhotoshopLayer> layers = documentData.FlattenedLayers.ToPhotoshopLayers();
+                PhotoshopFileMetadata photoshopFileMetadata = new PhotoshopFileMetadata(
+                    thumbnailUrl,
+                    fullsizePreviewUrl,
+                    layers,
+                    documentData.Width,
+                    documentData.Height,
+                    fileStream.Length);
+
+                using (MemoryStream metadataStream = new MemoryStream(photoshopFileMetadata.ToUtf8EncondedJsonBytes()))
+                    await fileSystem.WriteFileAsync(metadataFilePath, metadataStream);
             }
 
             BuildPhotoshopFilesCacheTask buildPhotoshopFilesCacheTask = new BuildPhotoshopFilesCacheTask();
