@@ -80,6 +80,9 @@ namespace ImageCreatorApi.Controllers
                 if (parameters == null)
                     return new ApiResponse("Missing a parametersJson text field in form body that can be deserialized to an intance of ExportParameters");
 
+                if(!parameters.Valid)
+                    return new ApiResponse(parameters.GetInvalidBodyMessage());
+
                 parameters.AddImageFiles(imageFiles);
 
                 IFileSystem fileSystem = FileSystemFactory.GetInstance();

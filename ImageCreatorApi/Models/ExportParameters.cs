@@ -1,20 +1,25 @@
 ﻿using ImageCreatorApi.Models.Photoshop;
+using Sakur.WebApiUtilities.BaseClasses;
 using Sakur.WebApiUtilities.Models;
 using System.Net;
 using System.Text.Json.Serialization;
 
 namespace ImageCreatorApi.Models
 {
-    public class ExportParameters
+    public class ExportParameters : RequestBody
     {
+        [Required]
         [JsonPropertyName("fileName")]
         public string FileName { get; set; }
 
-        [JsonPropertyName("texts")]
+        [Required]
+        [JsonPropertyName("textOptions")]
         public Dictionary<string, string> TextOptions { get; set; }
 
-        [JsonPropertyName("images")]
+        [JsonPropertyName("imageOptions")]
         public Dictionary<string, ImageOptions>? ImageOptions { get; set; }
+
+        public override bool Valid => ValidateByRequiredAttributes();
 
         public ExportParameters(string fileName, Dictionary<string, string> textOptions, Dictionary<string, ImageOptions> imageOptions)
         {
