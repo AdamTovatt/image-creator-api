@@ -112,17 +112,11 @@ namespace ImageCreatorApi.Controllers
             IFileSystem fileSystem = FileSystemFactory.GetInstance();
 
             PsdFilePath psdFilePath = new PsdFilePath(fileName);
-            PsdFileMetadataPath psdFileMetadataPath = new PsdFileMetadataPath(fileName);
 
             if (!await fileSystem.FileExistsAsync(psdFilePath.ToString()))
                 return new ApiResponse($"No such file found: {fileName}");
 
-            if (await fileSystem.FileExistsAsync(psdFileMetadataPath.ToString()))
-            {
-                PhotoshopFileMetadata metadata = await PhotoshopFileMetadata.ReadAsync(from: fileSystem, psdFileMetadataPath);
-                await SimpleCloudinaryHelper.Instance.DeleteFileAsync(metadata.ThumbnailUrl);
-                await fileSystem.DeleteFileAsync(psdFileMetadataPath.ToString());
-            }
+            await PhotoshopMetadataHelper.RemoveMetadataAsync(psdFilePath);
 
             await fileSystem.DeleteFileAsync(psdFilePath.ToString());
 

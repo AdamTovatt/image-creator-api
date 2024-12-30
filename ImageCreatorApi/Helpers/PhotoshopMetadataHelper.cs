@@ -26,6 +26,7 @@ namespace ImageCreatorApi.Helpers
 
                 await fileSystem.DeleteFileAsync(metadataFilePath);
                 await SimpleCloudinaryHelper.Instance.DeleteFileAsync(metadata.ThumbnailUrl);
+                await SimpleCloudinaryHelper.Instance.DeleteFileAsync(metadata.PreviewUrl);
             }
 
             using (Stream fileStream = await fileSystem.ReadFileAsync(filePath.ToString()))
@@ -71,6 +72,23 @@ namespace ImageCreatorApi.Helpers
                 BackgroundTaskQueue.Instance.QueueTask(buildPhotoshopFilesCacheTask);
             else
                 await buildPhotoshopFilesCacheTask.ExecuteAsync(CancellationToken.None);
+        }
+
+        public static async Task RemoveMetadataAsync(PsdFilePath filePath)
+        {
+            PsdFileMetadataPath metadataFilePathObject = new PsdFileMetadataPath(filePath.FileName);
+            string metadataFilePath = metadataFilePathObject.ToString();
+
+            IFileSystem fileSystem = FileSystemFactory.GetInstance();
+
+            if (await fileSystem.FileExistsAsync(metadataFilePath))
+            {
+                PhotoshopFileMetadata metadata = await PhotoshopFileMetadata.ReadAsync(from: fileSystem, withFilePath: metadataFilePathObject);
+
+                await fileSystem.DeleteFileAsync(metadataFilePath);
+                await SimpleCloudinaryHelper.Instance.DeleteFileAsync(metadata.ThumbnailUrl);
+                await SimpleCloudinaryHelper.Instance.DeleteFileAsync(metadata.PreviewUrl);
+            }
         }
     }
 }
