@@ -74,7 +74,11 @@ namespace ImageCreatorApi.Helpers
                     using (Stream imageStream = imageOptions.ImageFile.OpenReadStream())
                         await photopea.InsertFileFromStreamAsync(imageStream, $"{imageLayerName}_new");
 
-                    await photopea.MatchActiveLayerToOtherLayerAsync(imageLayerName);
+                    try
+                    {
+                        await photopea.MatchActiveLayerToOtherLayerAsync(imageLayerName);
+                    }
+                    catch { }
 
                     if (imageOptions.Mirror)
                         await photopea.FlipActiveLayerHorizontallyAsync();
