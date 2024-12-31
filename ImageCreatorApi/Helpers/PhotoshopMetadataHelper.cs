@@ -45,7 +45,9 @@ namespace ImageCreatorApi.Helpers
                 using (MemoryStream memoryStream = new MemoryStream(await photopea.SaveImageAsync(new SaveJpgOptions(80))))
                     fullsizePreviewUrl = await SimpleCloudinaryHelper.Instance.UploadFileAsync(new FullSizePreviewFilePath(filePath.FileName), memoryStream);
 
-                await photopea.ResizeImage(thumbnailSize, thumbnailSize);
+                Coordinate originalSize = new Coordinate(documentData.Width, documentData.Height);
+                Coordinate resizedSize = originalSize.ResizeWithFixedAspectRatio(thumbnailSize, thumbnailSize);
+                await photopea.ResizeImage(resizedSize.X, resizedSize.Y);
 
                 using (MemoryStream memoryStream = new MemoryStream(await photopea.SaveImageAsync(new SaveJpgOptions(80))))
                     thumbnailUrl = await SimpleCloudinaryHelper.Instance.UploadFileAsync(new ThumbnailFilePath(filePath.FileName), memoryStream);

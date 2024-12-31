@@ -56,11 +56,20 @@ namespace ImageCreatorApi.Helpers
 
         public static async Task ApplyExportParameters(this Photopea photopea, ExportParameters parameters)
         {
+            PhotopeaDocumentData data = await photopea.GetDocumentDataAsync();
+            Dictionary<string, int> layerIds = new Dictionary<string, int>();
+
             foreach (string textLayerName in parameters.TextOptions.Keys)
                 await photopea.SetTextValueAsync(textLayerName, parameters.TextOptions[textLayerName]);
 
             if (parameters.ImageOptions != null)
             {
+                foreach (string imageLayerName in parameters.ImageOptions.Keys)
+                {
+                    PhotopeaLayer layer = data.GetLayerByName(imageLayerName) ?? throw new ApiException($"Layer not found: {imageLayerName}", HttpStatusCode.BadRequest);
+                    layerIds.Add(imageLayerName, layer.Id);
+                }
+
                 foreach (string imageLayerName in parameters.ImageOptions.Keys)
                 {
                     ImageOptions imageOptions = parameters.ImageOptions[imageLayerName];
@@ -71,14 +80,25 @@ namespace ImageCreatorApi.Helpers
                     await photopea.SelectLayerByNameAsync(imageLayerName);
                     await photopea.SetVisibilityOfActiveLayerAsync(false);
 
-                    using (Stream imageStream = imageOptions.ImageFile.OpenReadStream())
-                        await photopea.InsertFileFromStreamAsync(imageStream, $"{imageLayerName}_new");
+                    string newLayerName = imageLayerName + "_new";
 
-                    try
-                    {
-                        await photopea.MatchActiveLayerToOtherLayerAsync(imageLayerName);
-                    }
-                    catch { }
+                    using (Stream imageStream = imageOptions.ImageFile.OpenReadStream())
+                        await photopea.InsertFileFromStreamAsync(imageStream, newLayerName);
+
+                    PhotopeaDocumentData documentData = await photopea.GetDocumentDataAsync();
+
+                    PhotopeaLayer? oldLayer = documentData.GetLayerById(layerIds[imageLayerName]);
+
+                    if (oldLayer == null)
+                        throw new ApiException($"Failed to get layer by id for layer: {imageLayerName}. (Id: {layerIds[imageLayerName]})", HttpStatusCode.InternalServerError);
+
+                    PhotopeaLayer? newLayer = documentData.GetLayerByName(newLayerName);
+
+                    if (newLayer == null)
+                        throw new ApiException($"Failed to get layer by name for layer: {newLayer}", HttpStatusCode.InternalServerError);
+
+                    await photopea.ScaleToOtherLayerAsync(newLayer, oldLayer);
+                    await photopea.MoveToOtherLayerAsync(newLayer, oldLayer);
 
                     if (imageOptions.Mirror)
                         await photopea.FlipActiveLayerHorizontallyAsync();
