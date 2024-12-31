@@ -1,5 +1,6 @@
 ﻿using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace ImageCreatorApi.FileSystems
@@ -179,10 +180,12 @@ namespace ImageCreatorApi.FileSystems
             using HttpClient client = new HttpClient();
             string chunkInfoJson = await client.GetStringAsync(result.SecureUrl);
 
-            return new UrlChunkStream(ChunkInfo.FromJson(chunkInfoJson));
+            ChunkInfo chunkInfo = ChunkInfo.FromJson(chunkInfoJson);
+
+            return new UrlChunkStream(chunkInfo);
         }
 
-        public async Task WriteFileAsync(string filePath, Stream dataStream)
+        public async Task<string> WriteFileAsync(string filePath, Stream dataStream)
         {
             string? folderPath = Path.GetDirectoryName(filePath)?.Replace('\\', '/');
             List<ChunkInfoRow> chunkInfoRows = new List<ChunkInfoRow>();
@@ -192,47 +195,71 @@ namespace ImageCreatorApi.FileSystems
                 long totalFileLength = dataStream.Length;
                 int chunkNumber = 1;
 
-                while (dataStream.Position < dataStream.Length)
+                using (SHA256 sha256 = SHA256.Create())
                 {
-                    using (SubStream chunkStream = new SubStream(dataStream, maxFileSize))
-                    {
-                        string chunkFilePath = FilePath.AddChunkNumber(filePath, chunkNumber);
+                    byte[] buffer = new byte[81920]; // 80 KB buffer
+                    int bytesRead;
 
-                        RawUploadParams uploadParams = new RawUploadParams
+                    // Compute hash from the entire dataStream
+                    while ((bytesRead = await dataStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    {
+                        sha256.TransformBlock(buffer, 0, bytesRead, null, 0);
+                    }
+
+                    // Reset the position of dataStream to 0 to allow chunking
+                    dataStream.Position = 0;
+
+                    while (dataStream.Position < dataStream.Length)
+                    {
+                        using (SubStream chunkStream = new SubStream(dataStream, maxFileSize))
+                        {
+                            string chunkFilePath = FilePath.AddChunkNumber(filePath, chunkNumber);
+
+                            RawUploadParams uploadParams = new RawUploadParams
+                            {
+                                AssetFolder = folderPath,
+                                File = new FileDescription(chunkFilePath, chunkStream),
+                                PublicId = chunkFilePath
+                            };
+
+                            RawUploadResult uploadResult = await cloudinary.UploadAsync(uploadParams);
+
+                            if (uploadResult.Error != null)
+                                throw new Exception($"Error when writing file: {uploadResult.Error.Message}");
+
+                            chunkInfoRows.Add(new ChunkInfoRow(uploadResult.PublicId, uploadResult.SecureUrl.ToString()));
+
+                            chunkNumber++;
+                        }
+                    }
+
+                    sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+
+                    if (sha256.Hash == null)
+                        throw new IOException("Failed to compute SHA-256 hash of the file.");
+
+                    string fileHash = BitConverter.ToString(sha256.Hash).Replace("-", "").ToLowerInvariant();
+
+                    // Create and upload ChunkInfo metadata
+                    ChunkInfo chunkInfo = new ChunkInfo(totalFileLength, chunkInfoRows.Count, chunkInfoRows, fileHash);
+                    string chunkInfoFilePath = FilePath.AddChunkInfoSuffix(filePath);
+
+                    using (MemoryStream chunkInfoStream = new MemoryStream(Encoding.UTF8.GetBytes(chunkInfo.ToJson())))
+                    {
+                        RawUploadParams chunkInfoUploadParams = new RawUploadParams
                         {
                             AssetFolder = folderPath,
-                            File = new FileDescription(chunkFilePath, chunkStream),
-                            PublicId = chunkFilePath
+                            File = new FileDescription(chunkInfoFilePath, chunkInfoStream),
+                            PublicId = chunkInfoFilePath
                         };
 
-                        RawUploadResult uploadResult = await cloudinary.UploadAsync(uploadParams);
+                        RawUploadResult chunkInfoUploadResult = await cloudinary.UploadAsync(chunkInfoUploadParams);
 
-                        if (uploadResult.Error != null)
-                            throw new Exception($"Error when writing file: {uploadResult.Error.Message}");
-
-                        chunkInfoRows.Add(new ChunkInfoRow(uploadResult.PublicId, uploadResult.SecureUrl.ToString()));
-
-                        chunkNumber++;
+                        if (chunkInfoUploadResult.Error != null)
+                            throw new Exception($"Error when writing chunk info: {chunkInfoUploadResult.Error.Message}");
                     }
-                }
 
-                // Create and upload ChunkInfo metadata
-                ChunkInfo chunkInfo = new ChunkInfo(totalFileLength, chunkInfoRows.Count, chunkInfoRows);
-                string chunkInfoFilePath = FilePath.AddChunkInfoSuffix(filePath);
-
-                using (MemoryStream chunkInfoStream = new MemoryStream(Encoding.UTF8.GetBytes(chunkInfo.ToJson())))
-                {
-                    RawUploadParams chunkInfoUploadParams = new RawUploadParams
-                    {
-                        AssetFolder = folderPath,
-                        File = new FileDescription(chunkInfoFilePath, chunkInfoStream),
-                        PublicId = chunkInfoFilePath
-                    };
-
-                    RawUploadResult chunkInfoUploadResult = await cloudinary.UploadAsync(chunkInfoUploadParams);
-
-                    if (chunkInfoUploadResult.Error != null)
-                        throw new Exception($"Error when writing chunk info: {chunkInfoUploadResult.Error.Message}");
+                    return fileHash;
                 }
             }
             catch

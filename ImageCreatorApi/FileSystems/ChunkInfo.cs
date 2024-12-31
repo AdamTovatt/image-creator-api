@@ -14,8 +14,11 @@ namespace ImageCreatorApi.FileSystems
         [JsonPropertyName("chunks")]
         public IReadOnlyList<ChunkInfoRow> Chunks { get; init; }
 
+        [JsonPropertyName("fileHash")]
+        public string FileHash { get; init; }
+
         [JsonConstructor]
-        public ChunkInfo(long totalFileLength, int chunkCount, IReadOnlyList<ChunkInfoRow> chunks)
+        public ChunkInfo(long totalFileLength, int chunkCount, IReadOnlyList<ChunkInfoRow> chunks, string fileHash)
         {
             if (chunkCount <= 0)
                 throw new ArgumentException("Chunk count must be greater than zero.", nameof(chunkCount));
@@ -29,6 +32,7 @@ namespace ImageCreatorApi.FileSystems
             TotalFileLength = totalFileLength;
             ChunkCount = chunkCount;
             Chunks = chunks;
+            FileHash = fileHash;
         }
 
         public string ToJson()

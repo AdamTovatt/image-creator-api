@@ -10,6 +10,6 @@
         Task DeleteFileAsync(string filePath);
         Task DeleteFolderAsync(string folderPath, bool recursive);
         Task<Stream> ReadFileAsync(string filePath);
-        Task WriteFileAsync(string filePath, Stream dataStream);
+        Task<string> WriteFileAsync(string filePath, Stream dataStream);
     }
 }
