@@ -9,12 +9,14 @@ namespace ImageCreatorApi.FileSystems
     {
         private readonly Cloudinary cloudinary;
         private readonly int maxFileSize;
+        private readonly IFileSystem? cacheFileSystem;
 
-        public CloudinaryFileSystem(string cloudName, string apiKey, string apiSecret, int maxFileSize = 10485759) // cloudinary free plan max file size (-1 for safety)
+        public CloudinaryFileSystem(string cloudName, string apiKey, string apiSecret, IFileSystem? cacheFileSystem = null, int maxFileSize = 10485759) // cloudinary free plan max file size (-1 for safety)
         {
             Account account = new Account(cloudName, apiKey, apiSecret);
             cloudinary = new Cloudinary(account);
             this.maxFileSize = maxFileSize;
+            this.cacheFileSystem = cacheFileSystem;
         }
 
         public async Task<bool> FolderExistsAsync(string path)
@@ -182,7 +184,43 @@ namespace ImageCreatorApi.FileSystems
 
             ChunkInfo chunkInfo = ChunkInfo.FromJson(chunkInfoJson);
 
-            return new UrlChunkStream(chunkInfo);
+            if (cacheFileSystem == null)
+                return new UrlChunkStream(chunkInfo);
+
+            return await ReadFileThroughCacheAsync(filePath, chunkInfo);
+        }
+
+        private async Task<Stream> ReadFileThroughCacheAsync(string filePath, ChunkInfo chunkInfo)
+        {
+            if (cacheFileSystem == null)
+                throw new InvalidOperationException("CacheFileSystem is not set.");
+
+            string cacheFilePath = $"{filePath}_cache_metadata";
+            bool shouldWriteToCacheFirst = false;
+
+            if (await cacheFileSystem.FileExistsAsync(cacheFilePath))
+            {
+                CacheFileMetadata cacheMetadata = await CacheFileMetadata.ReadFromFileSystemAsync(cacheFileSystem, cacheFilePath);
+
+                if (cacheMetadata.FileHash != chunkInfo.FileHash)
+                    shouldWriteToCacheFirst = true;
+            }
+            else
+            {
+                shouldWriteToCacheFirst = true;
+            }
+
+            if (shouldWriteToCacheFirst)
+            {
+                string writtenHash = await cacheFileSystem.WriteFileAsync(filePath, new UrlChunkStream(chunkInfo));
+
+                CacheFileMetadata cacheMetadata = new CacheFileMetadata(writtenHash);
+
+                using (MemoryStream cacheMetadataStream = cacheMetadata.ToMemoryStream())
+                    await cacheFileSystem.WriteFileAsync(cacheFilePath, cacheMetadataStream);
+            }
+
+            return await cacheFileSystem.ReadFileAsync(filePath);
         }
 
         public async Task<string> WriteFileAsync(string filePath, Stream dataStream)
