@@ -192,6 +192,9 @@ namespace ImageCreatorApi.FileSystems
 
         private async Task<Stream> ReadFileThroughCacheAsync(string filePath, ChunkInfo chunkInfo)
         {
+            if (chunkInfo.FileHash == null) // Can't use cache if file hash is missing
+                return new UrlChunkStream(chunkInfo);
+
             if (cacheFileSystem == null)
                 throw new InvalidOperationException("CacheFileSystem is not set.");
 
@@ -214,10 +217,14 @@ namespace ImageCreatorApi.FileSystems
             {
                 string writtenHash = await cacheFileSystem.WriteFileAsync(filePath, new UrlChunkStream(chunkInfo));
 
-                CacheFileMetadata cacheMetadata = new CacheFileMetadata(writtenHash);
+                if (writtenHash != chunkInfo.FileHash)
+                {
+                    await cacheFileSystem.DeleteFileAsync(filePath);
+                    throw new Exception($"Error when writing file to cache, hash for files didn't match. Online hash: {chunkInfo.FileHash}. Local hash: {writtenHash}");
+                }
 
-                using (MemoryStream cacheMetadataStream = cacheMetadata.ToMemoryStream())
-                    await cacheFileSystem.WriteFileAsync(cacheFilePath, cacheMetadataStream);
+                CacheFileMetadata cacheMetadata = new CacheFileMetadata(writtenHash);
+                await cacheMetadata.WriteToFileSystemAsync(cacheFileSystem, cacheFilePath);
             }
 
             return await cacheFileSystem.ReadFileAsync(filePath);

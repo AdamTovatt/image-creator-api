@@ -43,5 +43,11 @@ namespace ImageCreatorApi.FileSystems
                 return FromJson(await cacheFileStreamReader.ReadToEndAsync());
             }
         }
+
+        public async Task WriteToFileSystemAsync(IFileSystem fileSystem, string path)
+        {
+            using (MemoryStream cacheMetadataStream = ToMemoryStream())
+                await fileSystem.WriteFileAsync(path, cacheMetadataStream);
+        }
     }
 }

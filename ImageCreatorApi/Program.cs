@@ -4,7 +4,7 @@ using Sakur.WebApiUtilities;
 using Sakur.WebApiUtilities.Helpers;
 using Sakur.WebApiUtilities.TaskScheduling;
 using WebApiUtilities.TaskScheduling;
-    
+
 namespace ImageCreatorApi
 {
     public class Program
@@ -74,6 +74,9 @@ namespace ImageCreatorApi
             // Email-related environment variables
             EnvironmentHelper.GetEnvironmentVariable(StringConstants.PostmarkApiKey, 12);
             EnvironmentHelper.GetEnvironmentVariable(StringConstants.EmailSender, 8);
+
+            // Local file system cache environment variables
+            EnvironmentHelper.GetEnvironmentVariable(StringConstants.LocalFileSystemCacheBasePath, 6);
         }
     }
 }

@@ -19,5 +19,8 @@
         // Email-related constants
         public const string PostmarkApiKey = "POSTMARK_API_KEY";
         public const string EmailSender = "EMAIL_SENDER";
+
+        // Local file system cache
+        public const string LocalFileSystemCacheBasePath = "FILE_CACHE_BASE_PATH";
     }
 }

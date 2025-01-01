@@ -11,11 +11,14 @@ namespace ImageCreatorApi.Factories
         {
             if (instance == null)
             {
+                string cacheBasePathPath = EnvironmentHelper.GetEnvironmentVariable(StringConstants.LocalFileSystemCacheBasePath);
+                LocalFileSystem localFileSystem = new LocalFileSystem(1024 * 1024 * 1024, cacheBasePathPath); // 1 GB
+
                 string cloud = EnvironmentHelper.GetEnvironmentVariable(StringConstants.CloudinaryCloud);
                 string key = EnvironmentHelper.GetEnvironmentVariable(StringConstants.CloudinaryKey);
                 string secret = EnvironmentHelper.GetEnvironmentVariable(StringConstants.CloudinarySecret);
 
-                instance = new CloudinaryFileSystem(cloud, key, secret);
+                instance = new CloudinaryFileSystem(cloud, key, secret, cacheFileSystem: localFileSystem);
             }
 
             return instance;

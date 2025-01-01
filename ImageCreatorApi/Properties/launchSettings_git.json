@@ -17,7 +17,8 @@
         "JWT_ISSUER": "issuer",
         "JWT_AUDIENCE": "audience",
         "POSTMARK_API_KEY": "postmark-api-key",
-        "EMAIL_SENDER": "email@example.com"
+        "EMAIL_SENDER": "email@example.com",
+        "FILE_CACHE_BASE_PATH": "path"
       }
     }
   }
