@@ -23,10 +23,12 @@ namespace ImageCreatorApi.Helpers
         {
             foreach (string font in fonts)
             {
+                if (photopea.LoadedFonts.Contains(font)) continue;
+
                 try
                 {
                     using (Stream fontStream = await from.ReadFileAsync(new FontFilePath(font).ToString()))
-                        await photopea.LoadFileFromStreamAsync(fontStream);
+                        await photopea.LoadFontFromStreamAsync(fontStream, fontName: font);
                 }
                 catch (FileNotFoundException)
                 {

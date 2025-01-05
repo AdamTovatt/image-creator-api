@@ -11,6 +11,7 @@ using PhotopeaNet;
 using PhotopeaNet.Models.ImageSaving;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
+using PhotopeaNet.Helpers;
 
 namespace ImageCreatorApi.Controllers
 {
@@ -19,10 +20,12 @@ namespace ImageCreatorApi.Controllers
     public class PsdController : ControllerBase
     {
         private readonly ILogger<PsdController> _logger;
+        private readonly PhotopeaConnectionProvider _photopeaConnectionProvider;
 
-        public PsdController(ILogger<PsdController> logger)
+        public PsdController(ILogger<PsdController> logger, PhotopeaConnectionProvider photopeaConnectionProvider)
         {
             _logger = logger;
+            _photopeaConnectionProvider = photopeaConnectionProvider;
         }
 
         [Authorize]
@@ -57,7 +60,7 @@ namespace ImageCreatorApi.Controllers
 
             string filePathString = filePath.ToString();
             if (!await fileSystem.FileExistsAsync(filePathString))
-                return new ApiResponse("File doesn't exists! If you want to upload a new file, use the upload method instead!", HttpStatusCode.BadRequest);
+                return new ApiResponse("File doesn't exist! If you want to upload a new file, use the upload method instead!", HttpStatusCode.BadRequest);
 
             await fileSystem.DeleteFileAsync(filePathString);
 
@@ -78,9 +81,9 @@ namespace ImageCreatorApi.Controllers
                 ExportParameters? parameters = JsonSerializer.Deserialize<ExportParameters>(parametersJson);
 
                 if (parameters == null)
-                    return new ApiResponse("Missing a parametersJson text field in form body that can be deserialized to an intance of ExportParameters");
+                    return new ApiResponse("Missing a parametersJson text field in form body that can be deserialized to an instance of ExportParameters");
 
-                if(!parameters.Valid)
+                if (!parameters.Valid)
                     return new ApiResponse(parameters.GetInvalidBodyMessage());
 
                 parameters.AddImageFiles(imageFiles);
@@ -88,8 +91,9 @@ namespace ImageCreatorApi.Controllers
                 IFileSystem fileSystem = FileSystemFactory.GetInstance();
                 PsdFilePath psdFilePath = parameters.GetPsdFilePath();
 
-                using (Photopea photopea = await PhotopeaFactory.StartNewInstanceAsync())
+                using (PhotopeaConnection connection = await _photopeaConnectionProvider.GetConnectionAsync())
                 {
+                    Photopea photopea = connection.ConnectedPhotopea;
                     await photopea.LoadFullProjectFile(fileSystem, psdFilePath);
 
                     await photopea.ApplyExportParameters(parameters);
@@ -102,6 +106,10 @@ namespace ImageCreatorApi.Controllers
             catch (ApiException apiException)
             {
                 return new ApiResponse(apiException);
+            }
+            catch
+            {
+                return new ApiResponse("An unknown error occurred when exporting the image. It might work if you try again.", HttpStatusCode.InternalServerError);
             }
         }
 

@@ -4,6 +4,9 @@ using Sakur.WebApiUtilities;
 using Sakur.WebApiUtilities.Helpers;
 using Sakur.WebApiUtilities.TaskScheduling;
 using WebApiUtilities.TaskScheduling;
+using PhotopeaNet.Helpers;
+using PhotopeaNet.Models;
+using ImageCreatorApi.Models;
 
 namespace ImageCreatorApi
 {
@@ -31,6 +34,19 @@ namespace ImageCreatorApi
 
             BackgroundTaskQueue.Instance.QueueTask(new BuildUsersCacheTask());
             BackgroundTaskQueue.Instance.QueueTask(new BuildPhotoshopFilesCacheTask());
+
+            // Add PhotopeaConnectionProvider as a singleton
+            PhotopeaStartInfo startInfo = new PhotopeaStartInfo(false, 1400, 800);
+            builder.Services.AddSingleton<PhotopeaConnectionProvider>(provider =>
+            {
+                return new PhotopeaConnectionProvider(startInfo, 2);
+            });
+
+            // Register the lifecycle management class
+            builder.Host.ConfigureServices((context, services) =>
+            {
+                services.AddSingleton<IHostedService, PhotopeaConnectionProviderLifecycle>();
+            });
 
             WebApplication app = builder.Build();
 
