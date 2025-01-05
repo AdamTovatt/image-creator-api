@@ -37,10 +37,24 @@ namespace ImageCreatorApi.FileSystems
 
         public static async Task<CacheFileMetadata> ReadFromFileSystemAsync(IFileSystem fileSystem, string path)
         {
-            using (Stream cacheFileStream = await fileSystem.ReadFileAsync(path))
-            using (StreamReader cacheFileStreamReader = new StreamReader(cacheFileStream))
+            string? json = null;
+
+            try
             {
-                return FromJson(await cacheFileStreamReader.ReadToEndAsync());
+                using (Stream cacheFileStream = await fileSystem.ReadFileAsync(path))
+                using (StreamReader cacheFileStreamReader = new StreamReader(cacheFileStream))
+                {
+                    json = await cacheFileStreamReader.ReadToEndAsync();
+
+                    if (string.IsNullOrEmpty(json))
+                        throw new ArgumentException($"Tried to read cache metadata file from json but the json was null or empty for the path: {path}");
+
+                    return FromJson(json);
+                }
+            }
+            catch (Exception exception)
+            {
+                throw new Exception($"An error occurred when trying to read cache metadata file with the json: {json} from the path {path}", exception);
             }
         }
 
