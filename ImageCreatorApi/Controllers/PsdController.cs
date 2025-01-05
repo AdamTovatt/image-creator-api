@@ -20,12 +20,12 @@ namespace ImageCreatorApi.Controllers
     public class PsdController : ControllerBase
     {
         private readonly ILogger<PsdController> _logger;
-        private readonly PhotopeaConnectionProvider _photopeaConnectionProvider;
+        private readonly PhotopeaConnectionProvider photopeaConnectionProvider;
 
         public PsdController(ILogger<PsdController> logger, PhotopeaConnectionProvider photopeaConnectionProvider)
         {
             _logger = logger;
-            _photopeaConnectionProvider = photopeaConnectionProvider;
+            this.photopeaConnectionProvider = photopeaConnectionProvider;
         }
 
         [Authorize]
@@ -44,7 +44,7 @@ namespace ImageCreatorApi.Controllers
             using (Stream fileStream = psdFile.OpenReadStream())
                 await fileSystem.WriteFileAsync(filePathString, fileStream);
 
-            BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(filePath.FileName));
+            BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(photopeaConnectionProvider, filePath.FileName));
 
             return new ApiResponse("File was uploaded.");
         }
@@ -67,7 +67,7 @@ namespace ImageCreatorApi.Controllers
             using (Stream fileStream = psdFile.OpenReadStream())
                 await fileSystem.WriteFileAsync(filePathString, fileStream);
 
-            BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(filePath.FileName));
+            BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(photopeaConnectionProvider, filePath.FileName));
 
             return new ApiResponse("File was updated.");
         }
@@ -91,7 +91,7 @@ namespace ImageCreatorApi.Controllers
                 IFileSystem fileSystem = FileSystemFactory.GetInstance();
                 PsdFilePath psdFilePath = parameters.GetPsdFilePath();
 
-                using (PhotopeaConnection connection = await _photopeaConnectionProvider.GetConnectionAsync())
+                using (PhotopeaConnection connection = await photopeaConnectionProvider.GetConnectionAsync())
                 {
                     Photopea photopea = connection.ConnectedPhotopea;
                     await photopea.LoadFullProjectFile(fileSystem, psdFilePath);
@@ -165,9 +165,9 @@ namespace ImageCreatorApi.Controllers
             try
             {
                 if (inBackground)
-                    BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(fileName));
+                    BackgroundTaskQueue.Instance.QueueTask(new CreatePhotoshopMetadataTask(photopeaConnectionProvider, fileName));
                 else
-                    await PhotoshopMetadataHelper.CreateMetadataAsync(new PsdFilePath(fileName), false);
+                    await PhotoshopMetadataHelper.CreateMetadataAsync(photopeaConnectionProvider, new PsdFilePath(fileName), false);
             }
             catch (Exception exception)
             {

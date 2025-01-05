@@ -3,6 +3,7 @@ using ImageCreatorApi.FileSystems;
 using ImageCreatorApi.Models;
 using ImageCreatorApi.Models.Photoshop;
 using PhotopeaNet;
+using PhotopeaNet.Helpers;
 using PhotopeaNet.Models;
 using PhotopeaNet.Models.ImageSaving;
 using WebApiUtilities.TaskScheduling;
@@ -13,7 +14,7 @@ namespace ImageCreatorApi.Helpers
     {
         private const int thumbnailSize = 64;
 
-        public static async Task CreateMetadataAsync(PsdFilePath filePath, bool backgroundTask)
+        public static async Task CreateMetadataAsync(PhotopeaConnectionProvider photopeaConnectionProvider, PsdFilePath filePath, bool backgroundTask)
         {
             PsdFileMetadataPath metadataFilePathObject = new PsdFileMetadataPath(filePath.FileName);
             string metadataFilePath = metadataFilePathObject.ToString();
@@ -29,11 +30,13 @@ namespace ImageCreatorApi.Helpers
                 await SimpleCloudinaryHelper.Instance.DeleteFileAsync(metadata.PreviewUrl);
             }
 
+            using (PhotopeaConnection photopeaConnection = await photopeaConnectionProvider.GetConnectionAsync())
             using (Stream fileStream = await fileSystem.ReadFileAsync(filePath.ToString()))
-            using (Photopea photopea = PhotopeaFactory.GetInstance())
             {
-                await photopea.StartAsync();
-                await photopea.LoadFileFromStreamAsync(fileStream);
+                Photopea photopea = photopeaConnection.ConnectedPhotopea;
+
+                using (CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(120)))
+                    await photopea.LoadFileAsync(fileStream, cancellationTokenSource.Token);
 
                 PhotopeaDocumentData documentData = await photopea.GetDocumentDataAsync();
 

@@ -27,8 +27,9 @@ namespace ImageCreatorApi.Helpers
 
                 try
                 {
+                    using (CancellationTokenSource tokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
                     using (Stream fontStream = await from.ReadFileAsync(new FontFilePath(font).ToString()))
-                        await photopea.LoadFontFromStreamAsync(fontStream, fontName: font);
+                        await photopea.LoadFontFromStreamAsync(fontStream, fontName: font, tokenSource.Token);
                 }
                 catch (FileNotFoundException)
                 {
@@ -50,8 +51,9 @@ namespace ImageCreatorApi.Helpers
 
         public static async Task LoadFullProjectFile(this Photopea photopea, IFileSystem fileSystem, PsdFilePath psdFilePath)
         {
+            using (CancellationTokenSource tokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(120)))
             using (Stream fileStream = await fileSystem.ReadFileAsync(psdFilePath.ToString()))
-                await photopea.LoadFileFromStreamAsync(fileStream);
+                await photopea.LoadFileAsync(fileStream, tokenSource.Token);
 
             await photopea.LoadFonts(from: fileSystem, fonts: await photopea.GetRequiredFonts(), suppressFontNotFoundExceptions: false);
         }
@@ -84,8 +86,9 @@ namespace ImageCreatorApi.Helpers
 
                     string newLayerName = imageLayerName + "_new";
 
+                    using (CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
                     using (Stream imageStream = imageOptions.ImageFile.OpenReadStream())
-                        await photopea.InsertFileFromStreamAsync(imageStream, newLayerName);
+                        await photopea.InsertFileAsync(imageStream, newLayerName, CancellationToken.None);
 
                     PhotopeaDocumentData documentData = await photopea.GetDocumentDataAsync();
 
