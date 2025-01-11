@@ -4,6 +4,7 @@ using ImageCreatorApi.Helpers.Users;
 using ImageCreatorApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Sakur.WebApiUtilities.Models;
+using Sakur.WebApiUtilities.RateLimiting;
 using System.Net;
 
 namespace ImageCreatorApi.Controllers
@@ -25,6 +26,7 @@ namespace ImageCreatorApi.Controllers
         /// <param name="requestBody">The request body containing necessary data for generating the link.</param>
         /// <returns>Action result indicating success or failure.</returns>
         [HttpPost("generate-magic-link")]
+        [Limit(MaxRequests = 10, TimeWindow = 60)]
         public async Task<IActionResult> GenerateMagicLink([FromBody] UserGenerateLinkRequestBody requestBody)
         {
             if (!requestBody.Valid)
@@ -64,6 +66,7 @@ namespace ImageCreatorApi.Controllers
         /// <param name="token">The magic link token.</param>
         /// <returns>A JWT if the token is valid, or an error response otherwise.</returns>
         [HttpGet("validate-magic-link")]
+        [Limit(MaxRequests = 30, TimeWindow = 60)]
         public IActionResult ValidateMagicLink([FromQuery] string token)
         {
             if (string.IsNullOrWhiteSpace(token))

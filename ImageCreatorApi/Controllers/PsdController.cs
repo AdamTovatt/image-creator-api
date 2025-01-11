@@ -12,6 +12,7 @@ using PhotopeaNet.Models.ImageSaving;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using PhotopeaNet.Helpers;
+using Sakur.WebApiUtilities.RateLimiting;
 
 namespace ImageCreatorApi.Controllers
 {
@@ -30,6 +31,7 @@ namespace ImageCreatorApi.Controllers
 
         [Authorize]
         [HttpPost("upload")]
+        [Limit(MaxRequests = 4, TimeWindow = 60)]
         public async Task<IActionResult> Upload(IFormFile psdFile)
         {
             IFileSystem fileSystem = FileSystemFactory.GetInstance();
@@ -51,6 +53,7 @@ namespace ImageCreatorApi.Controllers
 
         [Authorize]
         [HttpPost("update")]
+        [Limit(MaxRequests = 4, TimeWindow = 60)]
         public async Task<IActionResult> Update(IFormFile psdFile)
         {
             IFileSystem fileSystem = FileSystemFactory.GetInstance();
@@ -74,6 +77,7 @@ namespace ImageCreatorApi.Controllers
 
         [Authorize]
         [HttpPost("export-with-parameters")]
+        [Limit(MaxRequests = 15, TimeWindow = 60)]
         public async Task<IActionResult> ExportWithParameters([FromForm] string parametersJson, [FromForm] List<IFormFile> imageFiles)
         {
             try
@@ -115,6 +119,7 @@ namespace ImageCreatorApi.Controllers
 
         [Authorize]
         [HttpDelete("delete")]
+        [Limit(MaxRequests = 10, TimeWindow = 60)]
         public async Task<IActionResult> Delete(string fileName)
         {
             IFileSystem fileSystem = FileSystemFactory.GetInstance();
@@ -135,6 +140,7 @@ namespace ImageCreatorApi.Controllers
 
         [Authorize]
         [HttpGet("download")]
+        [Limit(MaxRequests = 30, TimeWindow = 60)]
         public async Task<IActionResult> Download(string fileName)
         {
             IFileSystem fileSystem = FileSystemFactory.GetInstance();
@@ -160,6 +166,7 @@ namespace ImageCreatorApi.Controllers
 
         [Authorize]
         [HttpPost("create-metadata")]
+        [Limit(MaxRequests = 20, TimeWindow = 60)]
         public async Task<IActionResult> CreateMetadata(string fileName, bool inBackground)
         {
             try
@@ -179,6 +186,7 @@ namespace ImageCreatorApi.Controllers
 
         [Authorize]
         [HttpGet("list")]
+        [Limit(MaxRequests = 100, TimeWindow = 60)]
         public async Task<IActionResult> List()
         {
             IFileSystem fileSystem = FileSystemFactory.GetInstance();

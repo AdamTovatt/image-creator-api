@@ -4,6 +4,7 @@ using ImageCreatorApi.Models.Photoshop;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Sakur.WebApiUtilities.Models;
+using Sakur.WebApiUtilities.RateLimiting;
 using System.Net;
 
 namespace ImageCreatorApi.Controllers
@@ -14,6 +15,7 @@ namespace ImageCreatorApi.Controllers
     {
         [Authorize]
         [HttpPost("upload")]
+        [Limit(MaxRequests = 5, TimeWindow = 60)]
         public async Task<IActionResult> Upload(IFormFile fontFile)
         {
             IFileSystem fileSystem = FileSystemFactory.GetInstance();
