@@ -35,6 +35,8 @@ namespace ImageCreatorApi
             BackgroundTaskQueue.Instance.QueueTask(new BuildUsersCacheTask());
             BackgroundTaskQueue.Instance.QueueTask(new BuildPhotoshopFilesCacheTask());
 
+            builder.Services.AddScheduledTasks(typeof(BuildUsersCacheTask));
+
             // Add PhotopeaConnectionProvider as a singleton
             PhotopeaStartInfo startInfo = new PhotopeaStartInfo(true, 1400, 800, 120);
             builder.Services.AddSingleton<PhotopeaConnectionProvider>(provider =>
