@@ -13,6 +13,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using PhotopeaNet.Helpers;
 using Sakur.WebApiUtilities.RateLimiting;
+using System.ComponentModel.DataAnnotations;
 
 namespace ImageCreatorApi.Controllers
 {
@@ -31,6 +32,8 @@ namespace ImageCreatorApi.Controllers
 
         [Authorize]
         [HttpPost("upload")]
+        [RequestSizeLimit(1024 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 1024 * 1024 * 1024)]
         [Limit(MaxRequests = 4, TimeWindow = 60)]
         public async Task<IActionResult> Upload(IFormFile psdFile)
         {
@@ -53,6 +56,8 @@ namespace ImageCreatorApi.Controllers
 
         [Authorize]
         [HttpPost("update")]
+        [RequestSizeLimit(1024 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 1024 * 1024 * 1024)]
         [Limit(MaxRequests = 4, TimeWindow = 60)]
         public async Task<IActionResult> Update(IFormFile psdFile)
         {
@@ -78,7 +83,7 @@ namespace ImageCreatorApi.Controllers
         [Authorize]
         [HttpPost("export-with-parameters")]
         [Limit(MaxRequests = 15, TimeWindow = 60)]
-        public async Task<IActionResult> ExportWithParameters([FromForm] string parametersJson, [FromForm] List<IFormFile> imageFiles)
+        public async Task<IActionResult> ExportWithParameters([FromForm] string parametersJson, [FromForm] List<IFormFile> imageFiles, bool getAsPsd)
         {
             try
             {
@@ -95,6 +100,9 @@ namespace ImageCreatorApi.Controllers
                 IFileSystem fileSystem = FileSystemFactory.GetInstance();
                 PsdFilePath psdFilePath = parameters.GetPsdFilePath();
 
+                SaveImageOptions saveImageOptions = getAsPsd ? new SavePsdOptions(true) : new SaveJpgOptions(100);
+                string contentType = getAsPsd ? "application/psd" : "application/jpeg";
+
                 using (PhotopeaConnection connection = await photopeaConnectionProvider.GetConnectionAsync())
                 {
                     Photopea photopea = connection.ConnectedPhotopea;
@@ -102,9 +110,9 @@ namespace ImageCreatorApi.Controllers
 
                     await photopea.ApplyExportParameters(parameters);
 
-                    byte[] exportedBytes = await photopea.SaveImageAsync(new SaveJpgOptions(100));
+                    byte[] exportedBytes = await photopea.SaveImageAsync(saveImageOptions);
 
-                    return File(exportedBytes, "application/jpeg", $"{psdFilePath.GetFileNameWithoutExtension()}.jpg");
+                    return File(exportedBytes, "application/jpeg", $"{psdFilePath.GetFileNameWithoutExtension()}.{saveImageOptions.FileFormat}");
                 }
             }
             catch (ApiException apiException)
